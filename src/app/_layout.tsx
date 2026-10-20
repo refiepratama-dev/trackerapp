@@ -1,10 +1,12 @@
 import { DarkTheme, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
+import { SQLiteProvider } from 'expo-sqlite';
 import { Appearance } from 'react-native';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import AppTabs from '@/components/app-tabs';
 import { Brand, Colors } from '@/constants/theme';
+import { migrate } from '@/db/migrate';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -25,8 +27,10 @@ const navigationTheme = {
 export default function TabLayout() {
   return (
     <ThemeProvider value={navigationTheme}>
-      <AnimatedSplashOverlay />
-      <AppTabs />
+      <SQLiteProvider databaseName="trackerapp.db" onInit={migrate}>
+        <AnimatedSplashOverlay />
+        <AppTabs />
+      </SQLiteProvider>
     </ThemeProvider>
   );
 }
