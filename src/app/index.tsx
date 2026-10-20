@@ -187,6 +187,9 @@ function RecordingView({
       </SafeAreaView>
 
       <GlassPanel style={styles.statsPanel}>
+        {recorder.route.length === 0 && (
+          <Text style={styles.secondary}>Looking for GPS signal…</Text>
+        )}
         <View style={styles.distanceRow}>
           <Text style={styles.display}>{formatDistance(recorder.distanceM)}</Text>
           <Text style={styles.displayUnit}>{distanceUnitLabel()}</Text>
@@ -218,9 +221,18 @@ function SummaryView({ summary, onDone }: { summary: Summary; onDone: () => void
 
   return (
     <Screen title={summary.vehicleName}>
-      <View style={styles.summaryMap}>
-        <RouteMap route={summary.route} />
-      </View>
+      {summary.route.length > 1 ? (
+        <View style={styles.summaryMap}>
+          <RouteMap route={summary.route} />
+        </View>
+      ) : (
+        <GlassPanel>
+          <Text style={styles.panelTitle}>No route recorded</Text>
+          <Text style={styles.secondary}>
+            You did not move far enough, or the GPS signal was too weak. Try again outdoors.
+          </Text>
+        </GlassPanel>
+      )}
       <GlassPanel>
         <View style={styles.distanceRow}>
           <Text style={styles.display}>{formatDistance(summary.distanceM)}</Text>
