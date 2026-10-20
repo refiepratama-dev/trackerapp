@@ -1,0 +1,691 @@
+diff --git a/app.json b/app.json
+index e469fe1..7cc49d4 100644
+--- a/app.json
++++ b/app.json
+@@ -6,7 +6,7 @@
+     "orientation": "portrait",
+     "icon": "./assets/images/icon.png",
+     "scheme": "trackerapp",
+-    "userInterfaceStyle": "automatic",
++    "userInterfaceStyle": "dark",
+     "ios": {
+       "icon": "./assets/expo.icon"
+     },
+@@ -28,7 +28,7 @@
+       [
+         "expo-splash-screen",
+         {
+-          "backgroundColor": "#208AEF",
++          "backgroundColor": "#0F1012",
+           "image": "./assets/images/splash-icon.png",
+           "imageWidth": 76
+         }
+diff --git a/src/app/_layout.tsx b/src/app/_layout.tsx
+index b3fd50c..ee8df75 100644
+--- a/src/app/_layout.tsx
++++ b/src/app/_layout.tsx
+@@ -1,16 +1,30 @@
+-import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
++import { DarkTheme, ThemeProvider } from 'expo-router';
+ import * as SplashScreen from 'expo-splash-screen';
+-import { useColorScheme } from 'react-native';
++import { Appearance } from 'react-native';
+ 
+ import { AnimatedSplashOverlay } from '@/components/animated-icon';
+ import AppTabs from '@/components/app-tabs';
++import { Brand, Colors } from '@/constants/theme';
+ 
+ SplashScreen.preventAutoHideAsync();
+ 
++// The app is dark-only. Forcing it here also makes the native tab bar render in dark.
++Appearance.setColorScheme('dark');
++
++const navigationTheme = {
++  ...DarkTheme,
++  colors: {
++    ...DarkTheme.colors,
++    primary: Brand.accent,
++    background: Colors.dark.background,
++    card: Colors.dark.background,
++    text: Colors.dark.text,
++  },
++};
++
+ export default function TabLayout() {
+-  const colorScheme = useColorScheme();
+   return (
+-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
++    <ThemeProvider value={navigationTheme}>
+       <AnimatedSplashOverlay />
+       <AppTabs />
+     </ThemeProvider>
+diff --git a/src/app/explore.tsx b/src/app/explore.tsx
+deleted file mode 100644
+index 2934085..0000000
+--- a/src/app/explore.tsx
++++ /dev/null
+@@ -1,180 +0,0 @@
+-import { Image } from 'expo-image';
+-import { SymbolView } from 'expo-symbols';
+-import { Platform, Pressable, ScrollView, StyleSheet } from 'react-native';
+-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+-
+-import { ExternalLink } from '@/components/external-link';
+-import { ThemedText } from '@/components/themed-text';
+-import { ThemedView } from '@/components/themed-view';
+-import { Collapsible } from '@/components/ui/collapsible';
+-import { WebBadge } from '@/components/web-badge';
+-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+-import { useTheme } from '@/hooks/use-theme';
+-
+-export default function TabTwoScreen() {
+-  const safeAreaInsets = useSafeAreaInsets();
+-  const insets = {
+-    ...safeAreaInsets,
+-    bottom: safeAreaInsets.bottom + BottomTabInset + Spacing.three,
+-  };
+-  const theme = useTheme();
+-
+-  const contentPlatformStyle = Platform.select({
+-    android: {
+-      paddingTop: insets.top,
+-      paddingLeft: insets.left,
+-      paddingRight: insets.right,
+-      paddingBottom: insets.bottom,
+-    },
+-    web: {
+-      paddingTop: Spacing.six,
+-      paddingBottom: Spacing.four,
+-    },
+-  });
+-
+-  return (
+-    <ScrollView
+-      style={[styles.scrollView, { backgroundColor: theme.background }]}
+-      contentInset={insets}
+-      contentContainerStyle={[styles.contentContainer, contentPlatformStyle]}>
+-      <ThemedView style={styles.container}>
+-        <ThemedView style={styles.titleContainer}>
+-          <ThemedText type="subtitle">Explore</ThemedText>
+-          <ThemedText style={styles.centerText} themeColor="textSecondary">
+-            This starter app includes example{'\n'}code to help you get started.
+-          </ThemedText>
+-
+-          <ExternalLink href="https://docs.expo.dev" asChild>
+-            <Pressable style={({ pressed }) => pressed && styles.pressed}>
+-              <ThemedView type="backgroundElement" style={styles.linkButton}>
+-                <ThemedText type="link">Expo documentation</ThemedText>
+-                <SymbolView
+-                  tintColor={theme.text}
+-                  name={{ ios: 'arrow.up.right.square', android: 'link', web: 'link' }}
+-                  size={12}
+-                />
+-              </ThemedView>
+-            </Pressable>
+-          </ExternalLink>
+-        </ThemedView>
+-
+-        <ThemedView style={styles.sectionsWrapper}>
+-          <Collapsible title="File-based routing">
+-            <ThemedText type="small">
+-              This app has two screens: <ThemedText type="code">src/app/index.tsx</ThemedText> and{' '}
+-              <ThemedText type="code">src/app/explore.tsx</ThemedText>
+-            </ThemedText>
+-            <ThemedText type="small">
+-              The layout file in <ThemedText type="code">src/app/_layout.tsx</ThemedText> sets up
+-              the tab navigator.
+-            </ThemedText>
+-            <ExternalLink href="https://docs.expo.dev/router/introduction">
+-              <ThemedText type="linkPrimary">Learn more</ThemedText>
+-            </ExternalLink>
+-          </Collapsible>
+-
+-          <Collapsible title="Android, iOS, and web support">
+-            <ThemedView type="backgroundElement" style={styles.collapsibleContent}>
+-              <ThemedText type="small">
+-                You can open this project on Android, iOS, and the web. To open the web version,
+-                press <ThemedText type="smallBold">w</ThemedText> in the terminal running this
+-                project.
+-              </ThemedText>
+-              <Image
+-                source={require('@/assets/images/tutorial-web.png')}
+-                style={styles.imageTutorial}
+-              />
+-            </ThemedView>
+-          </Collapsible>
+-
+-          <Collapsible title="Images">
+-            <ThemedText type="small">
+-              For static images, you can use the <ThemedText type="code">@2x</ThemedText> and{' '}
+-              <ThemedText type="code">@3x</ThemedText> suffixes to provide files for different
+-              screen densities.
+-            </ThemedText>
+-            <Image source={require('@/assets/images/react-logo.png')} style={styles.imageReact} />
+-            <ExternalLink href="https://reactnative.dev/docs/images">
+-              <ThemedText type="linkPrimary">Learn more</ThemedText>
+-            </ExternalLink>
+-          </Collapsible>
+-
+-          <Collapsible title="Light and dark mode components">
+-            <ThemedText type="small">
+-              This template has light and dark mode support. The{' '}
+-              <ThemedText type="code">useColorScheme()</ThemedText> hook lets you inspect what the
+-              user&apos;s current color scheme is, and so you can adjust UI colors accordingly.
+-            </ThemedText>
+-            <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
+-              <ThemedText type="linkPrimary">Learn more</ThemedText>
+-            </ExternalLink>
+-          </Collapsible>
+-
+-          <Collapsible title="Animations">
+-            <ThemedText type="small">
+-              This template includes an example of an animated component. The{' '}
+-              <ThemedText type="code">src/components/ui/collapsible.tsx</ThemedText> component uses
+-              the powerful <ThemedText type="code">react-native-reanimated</ThemedText> library to
+-              animate opening this hint.
+-            </ThemedText>
+-          </Collapsible>
+-        </ThemedView>
+-        {Platform.OS === 'web' && <WebBadge />}
+-      </ThemedView>
+-    </ScrollView>
+-  );
+-}
+-
+-const styles = StyleSheet.create({
+-  scrollView: {
+-    flex: 1,
+-  },
+-  contentContainer: {
+-    flexDirection: 'row',
+-    justifyContent: 'center',
+-  },
+-  container: {
+-    maxWidth: MaxContentWidth,
+-    flexGrow: 1,
+-  },
+-  titleContainer: {
+-    gap: Spacing.three,
+-    alignItems: 'center',
+-    paddingHorizontal: Spacing.four,
+-    paddingVertical: Spacing.six,
+-  },
+-  centerText: {
+-    textAlign: 'center',
+-  },
+-  pressed: {
+-    opacity: 0.7,
+-  },
+-  linkButton: {
+-    flexDirection: 'row',
+-    paddingHorizontal: Spacing.four,
+-    paddingVertical: Spacing.two,
+-    borderRadius: Spacing.five,
+-    justifyContent: 'center',
+-    gap: Spacing.one,
+-    alignItems: 'center',
+-  },
+-  sectionsWrapper: {
+-    gap: Spacing.five,
+-    paddingHorizontal: Spacing.four,
+-    paddingTop: Spacing.three,
+-  },
+-  collapsibleContent: {
+-    alignItems: 'center',
+-  },
+-  imageTutorial: {
+-    width: '100%',
+-    aspectRatio: 296 / 171,
+-    borderRadius: Spacing.three,
+-    marginTop: Spacing.two,
+-  },
+-  imageReact: {
+-    width: 100,
+-    height: 100,
+-    alignSelf: 'center',
+-  },
+-});
+diff --git a/src/app/garage.tsx b/src/app/garage.tsx
+new file mode 100644
+index 0000000..f5e2dd9
+--- /dev/null
++++ b/src/app/garage.tsx
+@@ -0,0 +1,10 @@
++import { ScreenPlaceholder } from '@/components/screen-placeholder';
++
++export default function GarageScreen() {
++  return (
++    <ScreenPlaceholder
++      title="Garage"
++      description="Your vehicles will be listed here. Give each one a name, a photo and a type."
++    />
++  );
++}
+diff --git a/src/app/history.tsx b/src/app/history.tsx
+new file mode 100644
+index 0000000..ee179b8
+--- /dev/null
++++ b/src/app/history.tsx
+@@ -0,0 +1,10 @@
++import { ScreenPlaceholder } from '@/components/screen-placeholder';
++
++export default function HistoryScreen() {
++  return (
++    <ScreenPlaceholder
++      title="History"
++      description="Your past sessions will be listed here, with route, distance and date."
++    />
++  );
++}
+diff --git a/src/app/index.tsx b/src/app/index.tsx
+index 8ec3e6f..a6f48b1 100644
+--- a/src/app/index.tsx
++++ b/src/app/index.tsx
+@@ -1,98 +1,12 @@
+-import * as Device from 'expo-device';
+-import { Platform, StyleSheet } from 'react-native';
+-import { SafeAreaView } from 'react-native-safe-area-context';
++import { PrimaryButton } from '@/components/primary-button';
++import { ScreenPlaceholder } from '@/components/screen-placeholder';
+ 
+-import { AnimatedIcon } from '@/components/animated-icon';
+-import { HintRow } from '@/components/hint-row';
+-import { ThemedText } from '@/components/themed-text';
+-import { ThemedView } from '@/components/themed-view';
+-import { WebBadge } from '@/components/web-badge';
+-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+-
+-function getDevMenuHint() {
+-  if (Platform.OS === 'web') {
+-    return <ThemedText type="small">use browser devtools</ThemedText>;
+-  }
+-  if (Device.isDevice) {
+-    return (
+-      <ThemedText type="small">
+-        shake device or press <ThemedText type="code">m</ThemedText> in terminal
+-      </ThemedText>
+-    );
+-  }
+-  const shortcut = Platform.OS === 'android' ? 'cmd+m (or ctrl+m)' : 'cmd+d';
++export default function RecordScreen() {
+   return (
+-    <ThemedText type="small">
+-      press <ThemedText type="code">{shortcut}</ThemedText>
+-    </ThemedText>
++    <ScreenPlaceholder
++      title="Record"
++      description="Pick a vehicle and start a session. The map and live stats will appear here.">
++      <PrimaryButton label="Start" />
++    </ScreenPlaceholder>
+   );
+ }
+-
+-export default function HomeScreen() {
+-  return (
+-    <ThemedView style={styles.container}>
+-      <SafeAreaView style={styles.safeArea}>
+-        <ThemedView style={styles.heroSection}>
+-          <AnimatedIcon />
+-          <ThemedText type="title" style={styles.title}>
+-            Welcome to&nbsp;Expo
+-          </ThemedText>
+-        </ThemedView>
+-
+-        <ThemedText type="code" style={styles.code}>
+-          get started
+-        </ThemedText>
+-
+-        <ThemedView type="backgroundElement" style={styles.stepContainer}>
+-          <HintRow
+-            title="Try editing"
+-            hint={<ThemedText type="code">src/app/index.tsx</ThemedText>}
+-          />
+-          <HintRow title="Dev tools" hint={getDevMenuHint()} />
+-          <HintRow
+-            title="Fresh start"
+-            hint={<ThemedText type="code">npm run reset-project</ThemedText>}
+-          />
+-        </ThemedView>
+-
+-        {Platform.OS === 'web' && <WebBadge />}
+-      </SafeAreaView>
+-    </ThemedView>
+-  );
+-}
+-
+-const styles = StyleSheet.create({
+-  container: {
+-    flex: 1,
+-    justifyContent: 'center',
+-    flexDirection: 'row',
+-  },
+-  safeArea: {
+-    flex: 1,
+-    paddingHorizontal: Spacing.four,
+-    alignItems: 'center',
+-    gap: Spacing.three,
+-    paddingBottom: BottomTabInset + Spacing.three,
+-    maxWidth: MaxContentWidth,
+-  },
+-  heroSection: {
+-    alignItems: 'center',
+-    justifyContent: 'center',
+-    flex: 1,
+-    paddingHorizontal: Spacing.four,
+-    gap: Spacing.four,
+-  },
+-  title: {
+-    textAlign: 'center',
+-  },
+-  code: {
+-    textTransform: 'uppercase',
+-  },
+-  stepContainer: {
+-    gap: Spacing.three,
+-    alignSelf: 'stretch',
+-    paddingHorizontal: Spacing.three,
+-    paddingVertical: Spacing.four,
+-    borderRadius: Spacing.four,
+-  },
+-});
+diff --git a/src/app/settings.tsx b/src/app/settings.tsx
+new file mode 100644
+index 0000000..5187c8d
+--- /dev/null
++++ b/src/app/settings.tsx
+@@ -0,0 +1,10 @@
++import { ScreenPlaceholder } from '@/components/screen-placeholder';
++
++export default function SettingsScreen() {
++  return (
++    <ScreenPlaceholder
++      title="Settings"
++      description="Your profile (name and photo) and units (kilometers or miles) will live here."
++    />
++  );
++}
+diff --git a/src/components/app-tabs.tsx b/src/components/app-tabs.tsx
+index 80719bc..2bc5a22 100644
+--- a/src/components/app-tabs.tsx
++++ b/src/components/app-tabs.tsx
+@@ -1,31 +1,32 @@
+ import { NativeTabs } from 'expo-router/unstable-native-tabs';
+-import { useColorScheme } from 'react-native';
+ 
+-import { Colors } from '@/constants/theme';
++import { Brand } from '@/constants/theme';
+ 
++/**
++ * Native tab bar. On iOS 26 the system draws it with Liquid Glass, so we only set
++ * the selected tint (lime), icons (SF Symbols) and labels.
++ */
+ export default function AppTabs() {
+-  const scheme = useColorScheme();
+-  const colors = Colors[scheme === 'unspecified' ? 'light' : scheme];
+-
+   return (
+-    <NativeTabs
+-      backgroundColor={colors.background}
+-      indicatorColor={colors.backgroundElement}
+-      labelStyle={{ selected: { color: colors.text } }}>
++    <NativeTabs tintColor={Brand.accent}>
+       <NativeTabs.Trigger name="index">
+-        <NativeTabs.Trigger.Label>Home</NativeTabs.Trigger.Label>
+-        <NativeTabs.Trigger.Icon
+-          src={require('@/assets/images/tabIcons/home.png')}
+-          renderingMode="template"
+-        />
++        <NativeTabs.Trigger.Label>Record</NativeTabs.Trigger.Label>
++        <NativeTabs.Trigger.Icon sf={{ default: 'record.circle', selected: 'record.circle.fill' }} />
++      </NativeTabs.Trigger>
++
++      <NativeTabs.Trigger name="garage">
++        <NativeTabs.Trigger.Label>Garage</NativeTabs.Trigger.Label>
++        <NativeTabs.Trigger.Icon sf={{ default: 'bicycle', selected: 'bicycle' }} />
++      </NativeTabs.Trigger>
++
++      <NativeTabs.Trigger name="history">
++        <NativeTabs.Trigger.Label>History</NativeTabs.Trigger.Label>
++        <NativeTabs.Trigger.Icon sf={{ default: 'clock', selected: 'clock.fill' }} />
+       </NativeTabs.Trigger>
+ 
+-      <NativeTabs.Trigger name="explore">
+-        <NativeTabs.Trigger.Label>Explore</NativeTabs.Trigger.Label>
+-        <NativeTabs.Trigger.Icon
+-          src={require('@/assets/images/tabIcons/explore.png')}
+-          renderingMode="template"
+-        />
++      <NativeTabs.Trigger name="settings">
++        <NativeTabs.Trigger.Label>Settings</NativeTabs.Trigger.Label>
++        <NativeTabs.Trigger.Icon sf={{ default: 'gearshape', selected: 'gearshape.fill' }} />
+       </NativeTabs.Trigger>
+     </NativeTabs>
+   );
+diff --git a/src/components/app-tabs.web.tsx b/src/components/app-tabs.web.tsx
+index ca2787d..232e67b 100644
+--- a/src/components/app-tabs.web.tsx
++++ b/src/components/app-tabs.web.tsx
+@@ -21,11 +21,17 @@ export default function AppTabs() {
+       <TabSlot style={{ height: '100%' }} />
+       <TabList asChild>
+         <CustomTabList>
+-          <TabTrigger name="home" href="/" asChild>
+-            <TabButton>Home</TabButton>
++          <TabTrigger name="index" href="/" asChild>
++            <TabButton>Record</TabButton>
+           </TabTrigger>
+-          <TabTrigger name="explore" href="/explore" asChild>
+-            <TabButton>Explore</TabButton>
++          <TabTrigger name="garage" href="/garage" asChild>
++            <TabButton>Garage</TabButton>
++          </TabTrigger>
++          <TabTrigger name="history" href="/history" asChild>
++            <TabButton>History</TabButton>
++          </TabTrigger>
++          <TabTrigger name="settings" href="/settings" asChild>
++            <TabButton>Settings</TabButton>
+           </TabTrigger>
+         </CustomTabList>
+       </TabList>
+diff --git a/src/components/glass-panel.tsx b/src/components/glass-panel.tsx
+new file mode 100644
+index 0000000..84730f0
+--- /dev/null
++++ b/src/components/glass-panel.tsx
+@@ -0,0 +1,26 @@
++import { StyleSheet, View, type ViewProps } from 'react-native';
++
++import { Brand, Spacing } from '@/constants/theme';
++import { useTheme } from '@/hooks/use-theme';
++
++/**
++ * Translucent panel (glass-fill + glass-border). A plain translucent view for now;
++ * blur is added once the glass libraries are checked on the device.
++ */
++export function GlassPanel({ style, ...rest }: ViewProps) {
++  const theme = useTheme();
++
++  return (
++    <View style={[styles.panel, { backgroundColor: theme.backgroundElement }, style]} {...rest} />
++  );
++}
++
++const styles = StyleSheet.create({
++  panel: {
++    borderRadius: Spacing.four,
++    borderWidth: 1,
++    borderColor: Brand.glassBorder,
++    padding: Spacing.three,
++    gap: Spacing.two,
++  },
++});
+diff --git a/src/components/primary-button.tsx b/src/components/primary-button.tsx
+new file mode 100644
+index 0000000..50722b3
+--- /dev/null
++++ b/src/components/primary-button.tsx
+@@ -0,0 +1,42 @@
++import { Pressable, StyleSheet, Text, type PressableProps } from 'react-native';
++
++import { Brand, Spacing } from '@/constants/theme';
++
++type PrimaryButtonProps = Omit<PressableProps, 'children'> & {
++  label: string;
++};
++
++/** Pill-shaped lime button with dark text (Start, Finish, Share). */
++export function PrimaryButton({ label, style, ...rest }: PrimaryButtonProps) {
++  return (
++    <Pressable
++      accessibilityRole="button"
++      style={(state) => [
++        styles.button,
++        state.pressed && styles.pressed,
++        typeof style === 'function' ? style(state) : style,
++      ]}
++      {...rest}>
++      <Text style={styles.label}>{label}</Text>
++    </Pressable>
++  );
++}
++
++const styles = StyleSheet.create({
++  button: {
++    height: Spacing.six - Spacing.one * 2,
++    borderRadius: 999,
++    backgroundColor: Brand.accent,
++    alignItems: 'center',
++    justifyContent: 'center',
++    paddingHorizontal: Spacing.five,
++  },
++  pressed: {
++    opacity: 0.8,
++  },
++  label: {
++    color: Brand.onAccent,
++    fontSize: 17,
++    fontWeight: '600',
++  },
++});
+diff --git a/src/components/screen-placeholder.tsx b/src/components/screen-placeholder.tsx
+new file mode 100644
+index 0000000..8101fb8
+--- /dev/null
++++ b/src/components/screen-placeholder.tsx
+@@ -0,0 +1,50 @@
++import type { ReactNode } from 'react';
++import { StyleSheet } from 'react-native';
++import { SafeAreaView } from 'react-native-safe-area-context';
++
++import { GlassPanel } from '@/components/glass-panel';
++import { ThemedText } from '@/components/themed-text';
++import { ThemedView } from '@/components/themed-view';
++import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
++
++type ScreenPlaceholderProps = {
++  title: string;
++  description: string;
++  children?: ReactNode;
++};
++
++/** Empty screen with a title (28 semibold) and one glass panel describing what comes here. */
++export function ScreenPlaceholder({ title, description, children }: ScreenPlaceholderProps) {
++  return (
++    <ThemedView style={styles.container}>
++      <SafeAreaView style={styles.safeArea}>
++        <ThemedText style={styles.title}>{title}</ThemedText>
++        <GlassPanel>
++          <ThemedText themeColor="textSecondary">{description}</ThemedText>
++        </GlassPanel>
++        {children}
++      </SafeAreaView>
++    </ThemedView>
++  );
++}
++
++const styles = StyleSheet.create({
++  container: {
++    flex: 1,
++    flexDirection: 'row',
++    justifyContent: 'center',
++  },
++  safeArea: {
++    flex: 1,
++    maxWidth: MaxContentWidth,
++    paddingHorizontal: Spacing.three,
++    paddingTop: Spacing.three,
++    paddingBottom: BottomTabInset + Spacing.three,
++    gap: Spacing.three,
++  },
++  title: {
++    fontSize: 28,
++    lineHeight: 34,
++    fontWeight: '600',
++  },
++});
+diff --git a/src/constants/theme.ts b/src/constants/theme.ts
+index c10ed27..d65faf3 100644
+--- a/src/constants/theme.ts
++++ b/src/constants/theme.ts
+@@ -1,34 +1,44 @@
+ /**
+- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
+- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
++ * Design tokens from the Design System doc. The app is dark-only, so `light`
++ * and `dark` share the same values (the template's hooks still expect both keys).
+  */
+ 
+ import '@/global.css';
+ 
+ import { Platform } from 'react-native';
+ 
++const dark = {
++  text: '#FFFFFF',
++  background: '#0F1012',
++  /** glass-fill: white at 8% */
++  backgroundElement: 'rgba(255, 255, 255, 0.08)',
++  backgroundSelected: 'rgba(255, 255, 255, 0.14)',
++  /** text-secondary: white at 60% */
++  textSecondary: 'rgba(255, 255, 255, 0.6)',
++} as const;
++
+ export const Colors = {
+-  light: {
+-    text: '#000000',
+-    background: '#ffffff',
+-    backgroundElement: '#F0F0F3',
+-    backgroundSelected: '#E0E1E6',
+-    textSecondary: '#60646C',
+-  },
+-  dark: {
+-    text: '#ffffff',
+-    background: '#000000',
+-    backgroundElement: '#212225',
+-    backgroundSelected: '#2E3135',
+-    textSecondary: '#B0B4BA',
+-  },
++  light: dark,
++  dark,
+ } as const;
+ 
+ export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
+ 
++/** Brand colors that do not change with the theme. */
++export const Brand = {
++  /** accent: primary buttons, route line, highlights */
++  accent: '#C8F542',
++  /** on-accent: text on top of lime buttons */
++  onAccent: '#0F1012',
++  /** alert: pause button and warnings only */
++  alert: '#FF4D5E',
++  /** glass-border: white at 14% */
++  glassBorder: 'rgba(255, 255, 255, 0.14)',
++} as const;
++
+ export const Fonts = Platform.select({
+   ios: {
+-    /** iOS `UIFontDescriptorSystemDesignDefault` */
++    /** iOS `UIFontDescriptorSystemDesignDefault` (SF Pro) */
+     sans: 'system-ui',
+     /** iOS `UIFontDescriptorSystemDesignSerif` */
+     serif: 'ui-serif',
