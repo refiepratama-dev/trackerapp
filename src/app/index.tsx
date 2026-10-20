@@ -1,15 +1,16 @@
 import * as Location from 'expo-location';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
-import { useCallback, useState } from 'react';
+import { use, useCallback, useState } from 'react';
 import { Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { GlassPanel } from '@/components/glass-panel';
 import { PrimaryButton } from '@/components/primary-button';
 import { RouteMap } from '@/components/route-map';
 import { SessionStatsPanel, Stat } from '@/components/session-stats';
 import { Brand, BottomTabInset, Colors, Spacing } from '@/constants/theme';
+import { TabBarContext } from '@/context/tab-bar-context';
 import { createSession, getLastUsedVehicleId } from '@/db/sessions';
 import { listActiveVehicles, type Vehicle } from '@/db/vehicles';
 import type { Coordinate } from '@/tracking/geo';
@@ -35,6 +36,17 @@ export default function RecordScreen() {
   const router = useRouter();
   const [permission, requestPermission] = Location.useForegroundPermissions();
   const recorder = useRecorder();
+  const { setTabBarHidden } = use(TabBarContext);
+
+  // Focus mode: hide the tab bar while a session is running, and bring it back when
+  // the session ends or the user leaves this tab.
+  const recording = recorder.phase !== 'idle';
+  useFocusEffect(
+    useCallback(() => {
+      setTabBarHidden(recording);
+      return () => setTabBarHidden(false);
+    }, [recording, setTabBarHidden]),
+  );
 
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -175,6 +187,7 @@ function RecordingView({
   onFinish: () => void;
 }) {
   const paused = recorder.phase === 'paused';
+  const insets = useSafeAreaInsets();
   const avgSpeedMs = recorder.elapsedS > 0 ? recorder.distanceM / recorder.elapsedS : 0;
 
   return (
@@ -187,7 +200,7 @@ function RecordingView({
         </GlassPanel>
       </SafeAreaView>
 
-      <GlassPanel style={styles.statsPanel}>
+      <GlassPanel style={[styles.statsPanel, { bottom: insets.bottom + Spacing.three }]}>
         {recorder.route.length === 0 && (
           <Text style={styles.secondary}>Looking for GPS signal…</Text>
         )}
