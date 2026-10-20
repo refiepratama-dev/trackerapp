@@ -8,6 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { GlassPanel } from '@/components/glass-panel';
 import { PrimaryButton } from '@/components/primary-button';
 import { RouteMap } from '@/components/route-map';
+import { SessionStatsPanel, Stat } from '@/components/session-stats';
 import { Brand, BottomTabInset, Colors, Spacing } from '@/constants/theme';
 import { createSession, getLastUsedVehicleId } from '@/db/sessions';
 import { listActiveVehicles, type Vehicle } from '@/db/vehicles';
@@ -217,8 +218,6 @@ function RecordingView({
 }
 
 function SummaryView({ summary, onDone }: { summary: Summary; onDone: () => void }) {
-  const avgSpeedMs = summary.durationS > 0 ? summary.distanceM / summary.durationS : 0;
-
   return (
     <Screen title={summary.vehicleName}>
       {summary.route.length > 1 ? (
@@ -233,28 +232,13 @@ function SummaryView({ summary, onDone }: { summary: Summary; onDone: () => void
           </Text>
         </GlassPanel>
       )}
-      <GlassPanel>
-        <View style={styles.distanceRow}>
-          <Text style={styles.display}>{formatDistance(summary.distanceM)}</Text>
-          <Text style={styles.displayUnit}>{distanceUnitLabel()}</Text>
-        </View>
-        <View style={styles.statsRow}>
-          <Stat label="Time" value={formatDuration(summary.durationS)} />
-          <Stat label={`Avg ${speedUnitLabel()}`} value={formatSpeed(avgSpeedMs)} />
-          <Stat label={`Max ${speedUnitLabel()}`} value={formatSpeed(summary.maxSpeedMs)} />
-        </View>
-      </GlassPanel>
+      <SessionStatsPanel
+        distanceM={summary.distanceM}
+        durationS={summary.durationS}
+        maxSpeedMs={summary.maxSpeedMs}
+      />
       <PrimaryButton label="Done" onPress={onDone} />
     </Screen>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <View style={styles.stat}>
-      <Text style={styles.statValue}>{value}</Text>
-      <Text style={styles.label}>{label}</Text>
-    </View>
   );
 }
 
@@ -374,14 +358,6 @@ const styles = StyleSheet.create({
   statsRow: {
     flexDirection: 'row',
     gap: Spacing.four,
-  },
-  stat: {
-    gap: Spacing.half,
-  },
-  statValue: {
-    color: text,
-    fontSize: 28,
-    fontWeight: '600',
   },
   buttonRow: {
     flexDirection: 'row',
