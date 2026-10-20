@@ -7,12 +7,14 @@ type PrimaryButtonProps = Omit<PressableProps, 'children'> & {
 };
 
 /** Pill-shaped lime button with dark text (Start, Finish, Share). */
-export function PrimaryButton({ label, style, ...rest }: PrimaryButtonProps) {
+export function PrimaryButton({ label, style, disabled, ...rest }: PrimaryButtonProps) {
   return (
     <Pressable
       accessibilityRole="button"
+      disabled={disabled}
       style={(state) => [
         styles.button,
+        disabled && styles.disabled,
         state.pressed && styles.pressed,
         typeof style === 'function' ? style(state) : style,
       ]}
@@ -33,6 +35,9 @@ const styles = StyleSheet.create({
   },
   pressed: {
     opacity: 0.8,
+  },
+  disabled: {
+    opacity: 0.35,
   },
   label: {
     color: Brand.onAccent,
