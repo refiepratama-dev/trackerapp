@@ -33,7 +33,13 @@
           "imageWidth": 76
         }
       ],
-      "expo-sqlite"
+      "expo-sqlite",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Rolla uses your location to measure distance and speed and to draw your route while you record."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
