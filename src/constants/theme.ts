@@ -1,34 +1,44 @@
 /**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
+ * Design tokens from the Design System doc. The app is dark-only, so `light`
+ * and `dark` share the same values (the template's hooks still expect both keys).
  */
 
 import '@/global.css';
 
 import { Platform } from 'react-native';
 
+const dark = {
+  text: '#FFFFFF',
+  background: '#0F1012',
+  /** glass-fill: white at 8% */
+  backgroundElement: 'rgba(255, 255, 255, 0.08)',
+  backgroundSelected: 'rgba(255, 255, 255, 0.14)',
+  /** text-secondary: white at 60% */
+  textSecondary: 'rgba(255, 255, 255, 0.6)',
+} as const;
+
 export const Colors = {
-  light: {
-    text: '#000000',
-    background: '#ffffff',
-    backgroundElement: '#F0F0F3',
-    backgroundSelected: '#E0E1E6',
-    textSecondary: '#60646C',
-  },
-  dark: {
-    text: '#ffffff',
-    background: '#000000',
-    backgroundElement: '#212225',
-    backgroundSelected: '#2E3135',
-    textSecondary: '#B0B4BA',
-  },
+  light: dark,
+  dark,
 } as const;
 
 export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
 
+/** Brand colors that do not change with the theme. */
+export const Brand = {
+  /** accent: primary buttons, route line, highlights */
+  accent: '#C8F542',
+  /** on-accent: text on top of lime buttons */
+  onAccent: '#0F1012',
+  /** alert: pause button and warnings only */
+  alert: '#FF4D5E',
+  /** glass-border: white at 14% */
+  glassBorder: 'rgba(255, 255, 255, 0.14)',
+} as const;
+
 export const Fonts = Platform.select({
   ios: {
-    /** iOS `UIFontDescriptorSystemDesignDefault` */
+    /** iOS `UIFontDescriptorSystemDesignDefault` (SF Pro) */
     sans: 'system-ui',
     /** iOS `UIFontDescriptorSystemDesignSerif` */
     serif: 'ui-serif',
