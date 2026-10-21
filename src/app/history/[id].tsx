@@ -6,6 +6,7 @@ import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { GlassPanel } from '@/components/glass-panel';
 import { PrimaryButton } from '@/components/primary-button';
 import { RouteMap } from '@/components/route-map';
+import { ShareCardModal } from '@/components/share-card-modal';
 import { SessionStatsPanel } from '@/components/session-stats';
 import { Brand, Colors, Spacing } from '@/constants/theme';
 import { deleteSession, getSession, type SessionDetail } from '@/db/sessions';
@@ -19,6 +20,7 @@ export default function SessionDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [session, setSession] = useState<SessionDetail | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -89,7 +91,9 @@ export default function SessionDetailScreen() {
         maxSpeedMs={session.maxSpeedMs}
       />
 
+      <PrimaryButton label="Share card" onPress={() => setShareOpen(true)} />
       <PrimaryButton label="Delete session" tone="glass" onPress={confirmDelete} />
+      <ShareCardModal visible={shareOpen} data={session} onClose={() => setShareOpen(false)} />
     </ScrollView>
   );
 }

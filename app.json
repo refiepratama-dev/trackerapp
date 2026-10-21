@@ -35,6 +35,12 @@
       ],
       "expo-sqlite",
       [
+        "expo-media-library",
+        {
+          "savePhotosPermission": "Rolla saves your share cards to Photos."
+        }
+      ],
+      [
         "expo-location",
         {
           "locationWhenInUsePermission": "Rolla uses your location to measure distance and speed and to draw your route while you record."

@@ -8,6 +8,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { GlassPanel } from '@/components/glass-panel';
 import { PrimaryButton } from '@/components/primary-button';
 import { RouteMap } from '@/components/route-map';
+import { ShareCardModal } from '@/components/share-card-modal';
 import { SessionStatsPanel, Stat } from '@/components/session-stats';
 import { Brand, BottomTabInset, Colors, Spacing } from '@/constants/theme';
 import { TabBarContext } from '@/context/tab-bar-context';
@@ -25,6 +26,7 @@ import { useRecorder } from '@/tracking/use-recorder';
 
 type Summary = {
   vehicleName: string;
+  startedAt: number;
   distanceM: number;
   durationS: number;
   maxSpeedMs: number;
@@ -88,6 +90,7 @@ export default function RecordScreen() {
     }
     setSummary({
       vehicleName: selected.name,
+      startedAt: result.startedAt,
       distanceM: result.distanceM,
       durationS: result.durationS,
       maxSpeedMs: result.maxSpeedMs,
@@ -231,6 +234,8 @@ function RecordingView({
 }
 
 function SummaryView({ summary, onDone }: { summary: Summary; onDone: () => void }) {
+  const [shareOpen, setShareOpen] = useState(false);
+
   return (
     <Screen title={summary.vehicleName}>
       {summary.route.length > 1 ? (
@@ -250,7 +255,9 @@ function SummaryView({ summary, onDone }: { summary: Summary; onDone: () => void
         durationS={summary.durationS}
         maxSpeedMs={summary.maxSpeedMs}
       />
-      <PrimaryButton label="Done" onPress={onDone} />
+      <PrimaryButton label="Share card" onPress={() => setShareOpen(true)} />
+      <PrimaryButton label="Done" tone="glass" onPress={onDone} />
+      <ShareCardModal visible={shareOpen} data={summary} onClose={() => setShareOpen(false)} />
     </Screen>
   );
 }
