@@ -45,7 +45,8 @@
         {
           "locationWhenInUsePermission": "Rolla uses your location to measure distance and speed and to draw your route while you record."
         }
-      ]
+      ],
+      "expo-sharing"
     ],
     "experiments": {
       "typedRoutes": true,
