@@ -6,6 +6,7 @@ import { Appearance } from 'react-native';
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import AppTabs from '@/components/app-tabs';
 import { Brand, Colors } from '@/constants/theme';
+import { SettingsProvider } from '@/context/settings-context';
 import { migrate } from '@/db/migrate';
 
 SplashScreen.preventAutoHideAsync();
@@ -29,7 +30,9 @@ export default function TabLayout() {
     <ThemeProvider value={navigationTheme}>
       <SQLiteProvider databaseName="trackerapp.db" onInit={migrate}>
         <AnimatedSplashOverlay />
-        <AppTabs />
+        <SettingsProvider>
+          <AppTabs />
+        </SettingsProvider>
       </SQLiteProvider>
     </ThemeProvider>
   );

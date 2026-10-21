@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, Defs, Polyline, RadialGradient, Rect, Stop } from 'react-native-svg';
 
 import { Brand, Colors } from '@/constants/theme';
+import { useSettings } from '@/context/settings-context';
 import { plotRoute, trimRoute } from '@/share/trim-route';
 import type { Coordinate } from '@/tracking/geo';
 import {
@@ -44,6 +45,8 @@ export const ShareCard = forwardRef<View, ShareCardProps>(function ShareCard({ d
     [data.route, routeBox.width, routeBox.height, u],
   );
 
+  const { settings } = useSettings();
+  const unit = settings.unit;
   const avgSpeedMs = data.durationS > 0 ? data.distanceM / data.durationS : 0;
 
   return (
@@ -64,7 +67,9 @@ export const ShareCard = forwardRef<View, ShareCardProps>(function ShareCard({ d
           {data.vehicleName}
         </Text>
         <Text style={[styles.secondary, { fontSize: 15 * u, marginTop: 4 * u }]}>
-          {formatSessionDate(data.startedAt)}
+          {settings.userName
+            ? `${settings.userName} · ${formatSessionDate(data.startedAt)}`
+            : formatSessionDate(data.startedAt)}
         </Text>
       </View>
 
@@ -110,16 +115,24 @@ export const ShareCard = forwardRef<View, ShareCardProps>(function ShareCard({ d
       >
         <View style={styles.distanceRow}>
           <Text style={[styles.distance, { fontSize: 64 * u, lineHeight: 70 * u }]}>
-            {formatDistance(data.distanceM)}
+            {formatDistance(data.distanceM, unit)}
           </Text>
           <Text style={[styles.secondary, { fontSize: 18 * u, marginLeft: 8 * u }]}>
-            {distanceUnitLabel()}
+            {distanceUnitLabel(unit)}
           </Text>
         </View>
         <View style={styles.row}>
           <CardStat u={u} label="Time" value={formatDuration(data.durationS)} />
-          <CardStat u={u} label={`Avg ${speedUnitLabel()}`} value={formatSpeed(avgSpeedMs)} />
-          <CardStat u={u} label={`Max ${speedUnitLabel()}`} value={formatSpeed(data.maxSpeedMs)} />
+          <CardStat
+            u={u}
+            label={`Avg ${speedUnitLabel(unit)}`}
+            value={formatSpeed(avgSpeedMs, unit)}
+          />
+          <CardStat
+            u={u}
+            label={`Max ${speedUnitLabel(unit)}`}
+            value={formatSpeed(data.maxSpeedMs, unit)}
+          />
         </View>
       </View>
     </View>

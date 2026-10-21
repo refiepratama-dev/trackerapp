@@ -1,6 +1,6 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
-const LATEST_VERSION = 2;
+const LATEST_VERSION = 3;
 
 /** Types every user starts with. Users can add their own on top of these. */
 export const DEFAULT_VEHICLE_TYPES = [
@@ -69,7 +69,17 @@ export async function migrate(db: SQLiteDatabase) {
     version = 2;
   }
 
-  // Later schema steps go here as `if (version === 2) { ... version = 3; }`.
+  if (version === 2) {
+    await db.execAsync(`
+      CREATE TABLE settings (
+        key TEXT PRIMARY KEY NOT NULL,
+        value TEXT NOT NULL
+      );
+    `);
+    version = 3;
+  }
+
+  // Later schema steps go here as `if (version === 3) { ... version = 4; }`.
 
   await db.execAsync(`PRAGMA user_version = ${LATEST_VERSION}`);
 }

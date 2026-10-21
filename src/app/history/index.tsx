@@ -5,6 +5,7 @@ import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { GlassPanel } from '@/components/glass-panel';
 import { BottomTabInset, Colors, Spacing } from '@/constants/theme';
+import { useSettings } from '@/context/settings-context';
 import { listSessions, type SessionListItem } from '@/db/sessions';
 import {
   distanceUnitLabel,
@@ -20,6 +21,8 @@ const { text, textSecondary } = Colors.dark;
 export default function HistoryScreen() {
   const db = useSQLiteContext();
   const router = useRouter();
+  const { settings } = useSettings();
+  const unit = settings.unit;
   const [sessions, setSessions] = useState<SessionListItem[]>([]);
 
   // Reload whenever the tab or this screen regains focus (a new session, or one deleted).
@@ -57,7 +60,8 @@ export default function HistoryScreen() {
             accessibilityRole="button"
             onPress={() =>
               router.push({ pathname: '/history/[id]', params: { id: String(item.id) } })
-            }>
+            }
+          >
             {({ pressed }) => (
               <GlassPanel style={pressed && styles.pressed}>
                 <View style={styles.headerRow}>
@@ -67,11 +71,12 @@ export default function HistoryScreen() {
                   <Text style={styles.secondary}>{formatSessionDate(item.startedAt)}</Text>
                 </View>
                 <View style={styles.distanceRow}>
-                  <Text style={styles.distance}>{formatDistance(item.distanceM)}</Text>
-                  <Text style={styles.secondary}>{distanceUnitLabel()}</Text>
+                  <Text style={styles.distance}>{formatDistance(item.distanceM, unit)}</Text>
+                  <Text style={styles.secondary}>{distanceUnitLabel(unit)}</Text>
                 </View>
                 <Text style={styles.secondary}>
-                  {formatDuration(item.durationS)} · {formatSpeed(avgSpeedMs)} {speedUnitLabel()} avg
+                  {formatDuration(item.durationS)} · {formatSpeed(avgSpeedMs, unit)}{' '}
+                  {speedUnitLabel(unit)} avg
                 </Text>
               </GlassPanel>
             )}

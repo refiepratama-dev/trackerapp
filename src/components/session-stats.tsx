@@ -2,6 +2,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { GlassPanel } from '@/components/glass-panel';
 import { Colors, Spacing } from '@/constants/theme';
+import { useSettings } from '@/context/settings-context';
 import {
   distanceUnitLabel,
   formatDistance,
@@ -29,18 +30,20 @@ type SessionStatsPanelProps = {
 
 /** Big distance plus time, average and max speed. Used by the session summary and History detail. */
 export function SessionStatsPanel({ distanceM, durationS, maxSpeedMs }: SessionStatsPanelProps) {
+  const { settings } = useSettings();
+  const unit = settings.unit;
   const avgSpeedMs = durationS > 0 ? distanceM / durationS : 0;
 
   return (
     <GlassPanel>
       <View style={styles.distanceRow}>
-        <Text style={styles.display}>{formatDistance(distanceM)}</Text>
-        <Text style={styles.displayUnit}>{distanceUnitLabel()}</Text>
+        <Text style={styles.display}>{formatDistance(distanceM, unit)}</Text>
+        <Text style={styles.displayUnit}>{distanceUnitLabel(unit)}</Text>
       </View>
       <View style={styles.statsRow}>
         <Stat label="Time" value={formatDuration(durationS)} />
-        <Stat label={`Avg ${speedUnitLabel()}`} value={formatSpeed(avgSpeedMs)} />
-        <Stat label={`Max ${speedUnitLabel()}`} value={formatSpeed(maxSpeedMs)} />
+        <Stat label={`Avg ${speedUnitLabel(unit)}`} value={formatSpeed(avgSpeedMs, unit)} />
+        <Stat label={`Max ${speedUnitLabel(unit)}`} value={formatSpeed(maxSpeedMs, unit)} />
       </View>
     </GlassPanel>
   );

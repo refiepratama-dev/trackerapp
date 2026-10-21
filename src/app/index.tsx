@@ -11,6 +11,7 @@ import { RouteMap } from '@/components/route-map';
 import { ShareCardModal } from '@/components/share-card-modal';
 import { SessionStatsPanel, Stat } from '@/components/session-stats';
 import { Brand, BottomTabInset, Colors, Spacing } from '@/constants/theme';
+import { useSettings } from '@/context/settings-context';
 import { TabBarContext } from '@/context/tab-bar-context';
 import { createSession, getLastUsedVehicleId } from '@/db/sessions';
 import { listActiveVehicles, type Vehicle } from '@/db/vehicles';
@@ -189,6 +190,8 @@ function RecordingView({
   recorder: ReturnType<typeof useRecorder>;
   onFinish: () => void;
 }) {
+  const { settings } = useSettings();
+  const unit = settings.unit;
   const paused = recorder.phase === 'paused';
   const insets = useSafeAreaInsets();
   const avgSpeedMs = recorder.elapsedS > 0 ? recorder.distanceM / recorder.elapsedS : 0;
@@ -208,12 +211,12 @@ function RecordingView({
           <Text style={styles.secondary}>Looking for GPS signal…</Text>
         )}
         <View style={styles.distanceRow}>
-          <Text style={styles.display}>{formatDistance(recorder.distanceM)}</Text>
-          <Text style={styles.displayUnit}>{distanceUnitLabel()}</Text>
+          <Text style={styles.display}>{formatDistance(recorder.distanceM, unit)}</Text>
+          <Text style={styles.displayUnit}>{distanceUnitLabel(unit)}</Text>
         </View>
         <View style={styles.statsRow}>
           <Stat label="Time" value={formatDuration(recorder.elapsedS)} />
-          <Stat label={`Avg ${speedUnitLabel()}`} value={formatSpeed(avgSpeedMs)} />
+          <Stat label={`Avg ${speedUnitLabel(unit)}`} value={formatSpeed(avgSpeedMs, unit)} />
         </View>
         <View style={styles.buttonRow}>
           {paused ? (
