@@ -87,8 +87,16 @@ export function useRecorder() {
     setSnapshot(EMPTY);
     setNow(startedAt);
     setPhase('recording');
-    await startWatching();
-  }, [setClock, startWatching]);
+    try {
+      await startWatching();
+    } catch (error) {
+      // GPS could not start (permission or Location Services off): go back to idle.
+      stopWatching();
+      setClock(IDLE_CLOCK);
+      setPhase('idle');
+      throw error;
+    }
+  }, [setClock, startWatching, stopWatching]);
 
   const pause = useCallback(() => {
     stopWatching();

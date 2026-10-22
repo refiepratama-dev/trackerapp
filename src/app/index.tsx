@@ -1,8 +1,17 @@
 import * as Location from 'expo-location';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
-import { use, useCallback, useState } from 'react';
-import { Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { use, useCallback, useEffect, useState } from 'react';
+import {
+  Alert,
+  AppState,
+  Linking,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { GlassPanel } from '@/components/glass-panel';
@@ -37,7 +46,7 @@ type Summary = {
 export default function RecordScreen() {
   const db = useSQLiteContext();
   const router = useRouter();
-  const [permission, requestPermission] = Location.useForegroundPermissions();
+  const [permission, requestPermission, refreshPermission] = Location.useForegroundPermissions();
   const recorder = useRecorder();
   const { setTabBarHidden } = use(TabBarContext);
 
@@ -79,7 +88,48 @@ export default function RecordScreen() {
     }, [db]),
   );
 
+  // The user can change the permission in iOS Settings and come back: read it again each time.
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') refreshPermission();
+    });
+    return () => subscription.remove();
+  }, [refreshPermission]);
+
   const selected = vehicles.find((v) => v.id === selectedId) ?? null;
+
+  const explainLocation = () => {
+    Alert.alert(
+      'Location access needed',
+      'Allow location while using the app, and keep Precise Location on, then try again.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Open Settings', onPress: () => Linking.openSettings() },
+      ],
+    );
+  };
+
+  const startRecording = async () => {
+    // Check the real permission now, not the value remembered from earlier.
+    let current = await Location.getForegroundPermissionsAsync();
+    if (!current.granted && current.canAskAgain) current = await requestPermission();
+    if (!current.granted) {
+      explainLocation();
+      return;
+    }
+    try {
+      await recorder.start();
+    } catch {
+      Alert.alert(
+        'Could not start GPS',
+        'Check that Location Services are on and that this app is allowed to use your precise location.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Open Settings', onPress: () => Linking.openSettings() },
+        ],
+      );
+    }
+  };
 
   const finish = async () => {
     if (!selected) return;
@@ -105,11 +155,7 @@ export default function RecordScreen() {
 
   if (recorder.phase !== 'idle') {
     return (
-      <RecordingView
-        vehicleName={selected?.name ?? ''}
-        recorder={recorder}
-        onFinish={finish}
-      />
+      <RecordingView vehicleName={selected?.name ?? ''} recorder={recorder} onFinish={finish} />
     );
   }
 
@@ -121,8 +167,8 @@ export default function RecordScreen() {
         <GlassPanel>
           <Text style={styles.panelTitle}>Location access needed</Text>
           <Text style={styles.secondary}>
-            Rolla uses your location to measure distance, speed and draw your route. It is only
-            used while you record.
+            Rolla uses your location to measure distance, speed and draw your route. It is only used
+            while you record.
           </Text>
         </GlassPanel>
         {permission.canAskAgain ? (
@@ -152,7 +198,11 @@ export default function RecordScreen() {
     <Screen title="Record">
       <View style={styles.group}>
         <Text style={styles.label}>Vehicle</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.chips}
+        >
           {vehicles.map((v) => {
             const active = v.id === selectedId;
             return (
@@ -161,7 +211,8 @@ export default function RecordScreen() {
                 accessibilityRole="button"
                 accessibilityState={{ selected: active }}
                 onPress={() => setSelectedId(v.id)}
-                style={[styles.chip, active && styles.chipActive]}>
+                style={[styles.chip, active && styles.chipActive]}
+              >
                 <Text style={[styles.chipLabel, active && styles.chipLabelActive]}>{v.name}</Text>
               </Pressable>
             );
@@ -176,7 +227,7 @@ export default function RecordScreen() {
       </GlassPanel>
 
       <View style={styles.spacer} />
-      <PrimaryButton label="Start" disabled={!selected} onPress={() => recorder.start()} />
+      <PrimaryButton label="Start" disabled={!selected} onPress={startRecording} />
     </Screen>
   );
 }
@@ -208,7 +259,11 @@ function RecordingView({
 
       <GlassPanel style={[styles.statsPanel, { bottom: insets.bottom + Spacing.three }]}>
         {recorder.route.length === 0 && (
-          <Text style={styles.secondary}>Looking for GPS signal…</Text>
+          <Text style={styles.secondary}>
+            {recorder.elapsedS >= 15
+              ? 'Still no GPS fix. Go outside and make sure Precise Location is on for this app.'
+              : 'Looking for GPS signal…'}
+          </Text>
         )}
         <View style={styles.distanceRow}>
           <Text style={styles.display}>{formatDistance(recorder.distanceM, unit)}</Text>
