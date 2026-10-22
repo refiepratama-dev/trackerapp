@@ -1,87 +1,71 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useState } from 'react';
-import { Alert, FlatList, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 
 import { GlassPanel } from '@/components/glass-panel';
 import { PrimaryButton } from '@/components/primary-button';
+import { SwipeActions, useSwipeRows } from '@/components/swipe-actions';
 import { VehicleAvatar } from '@/components/vehicle-avatar';
-import { BottomTabInset, Spacing } from '@/constants/theme';
-import { archiveVehicle, listActiveVehicles, setVehiclePhoto, type Vehicle } from '@/db/vehicles';
+import { BottomTabInset, Colors, Spacing } from '@/constants/theme';
+import {
+  countVehicleSessions,
+  listActiveVehicles,
+  removeVehicle,
+  type Vehicle,
+} from '@/db/vehicles';
 import { useTheme } from '@/hooks/use-theme';
-import { deletePhotoFile, photoUriFor, pickVehiclePhoto } from '@/vehicles/photo';
+import { deletePhotoFile, photoUriFor } from '@/vehicles/photo';
 
 export default function GarageScreen() {
   const db = useSQLiteContext();
   const router = useRouter();
   const theme = useTheme();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const swipe = useSwipeRows<number>();
+  const { closeAll } = swipe;
 
-  const load = useCallback(async () => {
-    setVehicles(await listActiveVehicles(db));
-  }, [db]);
-
-  // Reload whenever the tab or this screen regains focus (e.g. after saving a new vehicle).
+  // Reload whenever the tab or this screen regains focus (e.g. after saving or editing).
+  // Leaving the screen closes any open row.
   useFocusEffect(
     useCallback(() => {
-      load();
-    }, [load]),
+      let cancelled = false;
+      listActiveVehicles(db).then((list) => {
+        if (!cancelled) setVehicles(list);
+      });
+      return () => {
+        cancelled = true;
+        closeAll();
+      };
+    }, [db, closeAll]),
   );
 
-  const confirmArchive = (vehicle: Vehicle) => {
-    Alert.alert(
-      `Archive ${vehicle.name}?`,
-      'It disappears from your garage. Your past sessions stay in History.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Archive',
-          style: 'destructive',
-          onPress: async () => {
-            await archiveVehicle(db, vehicle.id);
-            await load();
-          },
+  const edit = (vehicle: Vehicle) => {
+    closeAll();
+    router.push({ pathname: '/garage/edit', params: { id: String(vehicle.id) } });
+  };
+
+  const confirmDelete = async (vehicle: Vehicle, closeRow: () => void) => {
+    const sessions = await countVehicleSessions(db, vehicle.id);
+    const message =
+      sessions > 0
+        ? `It disappears from your garage. Its ${sessions} past ${
+            sessions === 1 ? 'session stays' : 'sessions stay'
+          } in History.`
+        : 'This cannot be undone.';
+    Alert.alert(`Delete ${vehicle.name}?`, message, [
+      { text: 'Cancel', style: 'cancel', onPress: closeRow },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          // A vehicle with sessions is only archived, so its photo stays for those share cards.
+          const result = await removeVehicle(db, vehicle.id);
+          if (result === 'deleted') deletePhotoFile(vehicle.photoFile);
+          setVehicles((current) => current.filter((v) => v.id !== vehicle.id));
         },
-      ],
-    );
-  };
-
-  const choosePhoto = async (vehicle: Vehicle) => {
-    try {
-      const result = await pickVehiclePhoto();
-      if (result.status === 'denied') {
-        Alert.alert(
-          'Photos are off',
-          'Allow photo access for this app in Settings to pick a vehicle photo.',
-          [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Open Settings', onPress: () => Linking.openSettings() },
-          ],
-        );
-        return;
-      }
-      if (result.status !== 'picked') return;
-      deletePhotoFile(await setVehiclePhoto(db, vehicle.id, result.fileName));
-      await load();
-    } catch {
-      Alert.alert('Could not set photo', 'Something went wrong. Please try again.');
-    }
-  };
-
-  const removePhoto = async (vehicle: Vehicle) => {
-    deletePhotoFile(await setVehiclePhoto(db, vehicle.id, null));
-    await load();
-  };
-
-  const openPhotoMenu = (vehicle: Vehicle) => {
-    if (!vehicle.photoFile) {
-      choosePhoto(vehicle);
-      return;
-    }
-    Alert.alert(vehicle.name, undefined, [
-      { text: 'Choose new photo', onPress: () => choosePhoto(vehicle) },
-      { text: 'Remove photo', style: 'destructive', onPress: () => removePhoto(vehicle) },
-      { text: 'Cancel', style: 'cancel' },
+      },
     ]);
   };
 
@@ -90,6 +74,7 @@ export default function GarageScreen() {
       data={vehicles}
       keyExtractor={(item) => String(item.id)}
       contentInsetAdjustmentBehavior="automatic"
+      onScrollBeginDrag={closeAll}
       contentContainerStyle={styles.content}
       ItemSeparatorComponent={() => <View style={styles.separator} />}
       ListEmptyComponent={
@@ -106,29 +91,68 @@ export default function GarageScreen() {
         </View>
       }
       renderItem={({ item }) => (
-        <GlassPanel style={styles.card}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`Change photo of ${item.name}`}
-            onPress={() => openPhotoMenu(item)}>
-            <VehicleAvatar name={item.name} photoUri={photoUriFor(item.photoFile)} size={56} />
-          </Pressable>
-          <View style={styles.info}>
-            <Text style={[styles.title, { color: theme.text }]} numberOfLines={1}>
-              {item.name}
-            </Text>
-            <Text style={[styles.body, { color: theme.textSecondary }]} numberOfLines={1}>
-              {item.brandModel ? `${item.typeName} · ${item.brandModel}` : item.typeName}
-            </Text>
+        // Swiping the card to the left reveals Edit and Delete on its right.
+        <ReanimatedSwipeable
+          ref={swipe.register(item.id)}
+          friction={2}
+          rightThreshold={40}
+          overshootRight={false}
+          onSwipeableWillOpen={() => swipe.handleWillOpen(item.id)}
+          onSwipeableClose={() => swipe.handleClose(item.id)}
+          renderRightActions={(progress, _translation, swipeable) => (
+            <SwipeActions
+              progress={progress}
+              actions={[
+                {
+                  label: 'Edit',
+                  symbol: 'pencil',
+                  tone: 'edit',
+                  accessibilityLabel: `Edit ${item.name}`,
+                  onPress: () => {
+                    swipeable.close();
+                    edit(item);
+                  },
+                },
+                {
+                  label: 'Delete',
+                  symbol: 'trash',
+                  tone: 'delete',
+                  accessibilityLabel: `Delete ${item.name}`,
+                  onPress: () => confirmDelete(item, swipeable.close),
+                },
+              ]}
+            />
+          )}>
+          {/* Opaque layer under the translucent card, so the buttons never show through it. */}
+          <View style={styles.cardBacking}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Edit ${item.name}`}
+              onPress={() => {
+                // A tap while a row is open only closes it, like iOS Mail.
+                if (swipe.consumeTap()) return;
+                edit(item);
+              }}>
+              {({ pressed }) => (
+                <GlassPanel style={[styles.card, pressed && styles.pressed]}>
+                  <VehicleAvatar
+                    name={item.name}
+                    photoUri={photoUriFor(item.photoFile)}
+                    size={56}
+                  />
+                  <View style={styles.info}>
+                    <Text style={[styles.title, { color: theme.text }]} numberOfLines={1}>
+                      {item.name}
+                    </Text>
+                    <Text style={[styles.body, { color: theme.textSecondary }]} numberOfLines={1}>
+                      {item.brandModel ? `${item.typeName} · ${item.brandModel}` : item.typeName}
+                    </Text>
+                  </View>
+                </GlassPanel>
+              )}
+            </Pressable>
           </View>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`Archive ${item.name}`}
-            hitSlop={8}
-            onPress={() => confirmArchive(item)}>
-            <Text style={[styles.archive, { color: theme.textSecondary }]}>Archive</Text>
-          </Pressable>
-        </GlassPanel>
+        </ReanimatedSwipeable>
       )}
     />
   );
@@ -142,10 +166,17 @@ const styles = StyleSheet.create({
   separator: {
     height: Spacing.two,
   },
+  cardBacking: {
+    borderRadius: Spacing.four,
+    backgroundColor: Colors.dark.background,
+  },
   card: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.three,
+  },
+  pressed: {
+    opacity: 0.8,
   },
   info: {
     flex: 1,
@@ -157,9 +188,6 @@ const styles = StyleSheet.create({
   },
   body: {
     fontSize: 15,
-  },
-  archive: {
-    fontSize: 13,
   },
   footer: {
     marginTop: Spacing.four,
