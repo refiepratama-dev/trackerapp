@@ -1,5 +1,14 @@
 import { useEffect, useState } from 'react';
-import { Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  Alert,
+  Linking,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  View,
+} from 'react-native';
 
 import { GlassPanel } from '@/components/glass-panel';
 import { ProfilePhoto } from '@/components/profile-photo';
@@ -151,6 +160,22 @@ export default function SettingsScreen() {
       </View>
 
       <View style={styles.group}>
+        <View style={styles.switchRow}>
+          <Text style={styles.switchLabel}>Auto-pause</Text>
+          <Switch
+            accessibilityLabel="Auto-pause"
+            value={settings.autoPause}
+            onValueChange={(value) => update({ autoPause: value })}
+            trackColor={{ true: Brand.accent }}
+          />
+        </View>
+        <Text style={styles.hint}>
+          Stops the timer when you stop moving, for example at a red light, and continues when you
+          go again.
+        </Text>
+      </View>
+
+      <View style={styles.group}>
         <TextField
           label={`Body weight (${settings.unit === 'km' ? 'kg' : 'lb'}), optional`}
           placeholder={settings.unit === 'km' ? 'e.g. 65' : 'e.g. 145'}
@@ -186,6 +211,15 @@ const styles = StyleSheet.create({
   photoGroup: {
     alignItems: 'center',
     gap: Spacing.two,
+  },
+  switchRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  switchLabel: {
+    color: text,
+    fontSize: 17,
   },
   group: {
     gap: Spacing.two,

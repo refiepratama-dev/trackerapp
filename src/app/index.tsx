@@ -52,8 +52,8 @@ export default function RecordScreen() {
   const db = useSQLiteContext();
   const router = useRouter();
   const [permission, requestPermission, refreshPermission] = Location.useForegroundPermissions();
-  const recorder = useRecorder();
   const { settings } = useSettings();
+  const recorder = useRecorder({ autoPause: settings.autoPause });
   const { setTabBarHidden } = use(TabBarContext);
 
   // Focus mode: hide the tab bar while a session is running, and bring it back when
@@ -266,7 +266,13 @@ function RecordingView({
 
       <SafeAreaView edges={['top']} style={styles.topBar} pointerEvents="none">
         <GlassPanel style={styles.vehicleChip}>
-          <Text style={styles.chipLabel}>{paused ? `${vehicleName} · Paused` : vehicleName}</Text>
+          <Text style={styles.chipLabel}>
+            {paused
+              ? `${vehicleName} · Paused`
+              : recorder.autoPaused
+                ? `${vehicleName} · Auto-paused`
+                : vehicleName}
+          </Text>
         </GlassPanel>
       </SafeAreaView>
 

@@ -10,6 +10,8 @@ export type Settings = {
   weightKg: number | null;
   /** File name of the profile photo (see `src/profile/photo.ts`). Null means no photo. */
   photoFile: string | null;
+  /** Stop the timer automatically when the rider stops moving. */
+  autoPause: boolean;
 };
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -17,6 +19,7 @@ export const DEFAULT_SETTINGS: Settings = {
   unit: 'km',
   weightKg: null,
   photoFile: null,
+  autoPause: true,
 };
 
 function parseWeight(value: string | undefined): number | null {
@@ -35,6 +38,7 @@ export async function loadSettings(db: SQLiteDatabase): Promise<Settings> {
     unit: stored.unit === 'mi' ? 'mi' : 'km',
     weightKg: parseWeight(stored.weightKg),
     photoFile: stored.photoFile || null,
+    autoPause: stored.autoPause !== 'false',
   };
 }
 
