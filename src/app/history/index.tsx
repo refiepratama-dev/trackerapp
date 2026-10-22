@@ -1,12 +1,14 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
+import { SymbolView } from 'expo-symbols';
 import { useCallback, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 
 import { GlassPanel } from '@/components/glass-panel';
-import { BottomTabInset, Colors, Spacing } from '@/constants/theme';
+import { Brand, BottomTabInset, Colors, Spacing } from '@/constants/theme';
 import { useSettings } from '@/context/settings-context';
-import { listSessions, type SessionListItem } from '@/db/sessions';
+import { deleteSession, listSessions, type SessionListItem } from '@/db/sessions';
 import {
   distanceUnitLabel,
   formatDistance,
@@ -38,6 +40,20 @@ export default function HistoryScreen() {
     }, [db]),
   );
 
+  const confirmDelete = (item: SessionListItem, closeRow: () => void) => {
+    Alert.alert('Delete this session?', 'This cannot be undone.', [
+      { text: 'Cancel', style: 'cancel', onPress: closeRow },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          await deleteSession(db, item.id);
+          setSessions((current) => current.filter((session) => session.id !== item.id));
+        },
+      },
+    ]);
+  };
+
   return (
     <FlatList
       data={sessions}
@@ -56,31 +72,46 @@ export default function HistoryScreen() {
       renderItem={({ item }) => {
         const avgSpeedMs = item.durationS > 0 ? item.distanceM / item.durationS : 0;
         return (
-          <Pressable
-            accessibilityRole="button"
-            onPress={() =>
-              router.push({ pathname: '/history/[id]', params: { id: String(item.id) } })
-            }
-          >
-            {({ pressed }) => (
-              <GlassPanel style={pressed && styles.pressed}>
-                <View style={styles.headerRow}>
-                  <Text style={styles.title} numberOfLines={1}>
-                    {item.vehicleName}
+          // Swiping the card to the right reveals the Delete button on its left.
+          <ReanimatedSwipeable
+            friction={2}
+            leftThreshold={40}
+            overshootLeft={false}
+            renderLeftActions={(_progress, _translation, swipeable) => (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`Delete session of ${item.vehicleName}`}
+                style={styles.deleteAction}
+                onPress={() => confirmDelete(item, swipeable.close)}>
+                <SymbolView name="trash" size={22} weight="semibold" tintColor="#FFFFFF" />
+                <Text style={styles.deleteLabel}>Delete</Text>
+              </Pressable>
+            )}>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() =>
+                router.push({ pathname: '/history/[id]', params: { id: String(item.id) } })
+              }>
+              {({ pressed }) => (
+                <GlassPanel style={pressed && styles.pressed}>
+                  <View style={styles.headerRow}>
+                    <Text style={styles.title} numberOfLines={1}>
+                      {item.vehicleName}
+                    </Text>
+                    <Text style={styles.secondary}>{formatSessionDate(item.startedAt)}</Text>
+                  </View>
+                  <View style={styles.distanceRow}>
+                    <Text style={styles.distance}>{formatDistance(item.distanceM, unit)}</Text>
+                    <Text style={styles.secondary}>{distanceUnitLabel(unit)}</Text>
+                  </View>
+                  <Text style={styles.secondary}>
+                    {formatDuration(item.durationS)} · {formatSpeed(avgSpeedMs, unit)}{' '}
+                    {speedUnitLabel(unit)} avg
                   </Text>
-                  <Text style={styles.secondary}>{formatSessionDate(item.startedAt)}</Text>
-                </View>
-                <View style={styles.distanceRow}>
-                  <Text style={styles.distance}>{formatDistance(item.distanceM, unit)}</Text>
-                  <Text style={styles.secondary}>{distanceUnitLabel(unit)}</Text>
-                </View>
-                <Text style={styles.secondary}>
-                  {formatDuration(item.durationS)} · {formatSpeed(avgSpeedMs, unit)}{' '}
-                  {speedUnitLabel(unit)} avg
-                </Text>
-              </GlassPanel>
-            )}
-          </Pressable>
+                </GlassPanel>
+              )}
+            </Pressable>
+          </ReanimatedSwipeable>
         );
       }}
     />
@@ -97,6 +128,20 @@ const styles = StyleSheet.create({
   },
   pressed: {
     opacity: 0.8,
+  },
+  deleteAction: {
+    width: 88,
+    marginRight: Spacing.two,
+    borderRadius: Spacing.four,
+    backgroundColor: Brand.alert,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.one,
+  },
+  deleteLabel: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '600',
   },
   headerRow: {
     flexDirection: 'row',

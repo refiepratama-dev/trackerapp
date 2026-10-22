@@ -6,7 +6,6 @@ import {
   Linking,
   Modal,
   PixelRatio,
-  Pressable,
   StyleSheet,
   Text,
   useWindowDimensions,
@@ -14,6 +13,7 @@ import {
 } from 'react-native';
 import { captureRef } from 'react-native-view-shot';
 
+import { GlassIconButton } from '@/components/glass-icon-button';
 import { PrimaryButton } from '@/components/primary-button';
 import { CARD_ASPECT, ShareCard, type ShareCardData } from '@/components/share-card';
 import { Colors, Spacing } from '@/constants/theme';
@@ -101,14 +101,11 @@ export function ShareCardModal({ visible, data, onClose }: ShareCardModalProps) 
       visible={visible}
       animationType="slide"
       presentationStyle="pageSheet"
-      onRequestClose={onClose}
-    >
+      onRequestClose={onClose}>
       <View style={styles.sheet}>
         <View style={styles.header}>
           <Text style={styles.title}>Share card</Text>
-          <Pressable accessibilityRole="button" hitSlop={12} onPress={onClose}>
-            <Text style={styles.close}>Close</Text>
-          </Pressable>
+          <GlassIconButton symbol="xmark" accessibilityLabel="Close" onPress={onClose} />
         </View>
 
         <View style={styles.preview}>
@@ -150,10 +147,6 @@ const styles = StyleSheet.create({
     color: Colors.dark.text,
     fontSize: 28,
     fontWeight: '600',
-  },
-  close: {
-    color: Colors.dark.textSecondary,
-    fontSize: 17,
   },
   preview: {
     flex: 1,
