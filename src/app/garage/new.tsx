@@ -112,7 +112,7 @@ export default function NewVehicleScreen() {
 
       <TextField
         label="Name"
-        placeholder="e.g. Blue Thunder"
+        placeholder="e.g. Wasp Queen"
         value={name}
         onChangeText={setName}
         maxLength={30}
@@ -146,7 +146,7 @@ export default function NewVehicleScreen() {
       {selected === NEW_TYPE && (
         <TextField
           label="Type name"
-          placeholder="e.g. Hoverboard"
+          placeholder="e.g. Surf Board"
           value={customType}
           onChangeText={setCustomType}
           maxLength={24}
@@ -155,7 +155,7 @@ export default function NewVehicleScreen() {
 
       <TextField
         label="Brand / model (optional)"
-        placeholder="e.g. Brompton C Line"
+        placeholder="e.g. Pacific"
         value={brandModel}
         onChangeText={setBrandModel}
         maxLength={40}
