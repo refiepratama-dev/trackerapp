@@ -11,6 +11,7 @@ import { SessionStatsPanel } from '@/components/session-stats';
 import { Brand, Colors, Spacing } from '@/constants/theme';
 import { deleteSession, getSession, type SessionDetail } from '@/db/sessions';
 import { formatSessionDate } from '@/tracking/format-date';
+import { photoUriFor } from '@/vehicles/photo';
 
 const { text, textSecondary } = Colors.dark;
 
@@ -93,7 +94,11 @@ export default function SessionDetailScreen() {
 
       <PrimaryButton label="Share card" onPress={() => setShareOpen(true)} />
       <PrimaryButton label="Delete session" tone="glass" onPress={confirmDelete} />
-      <ShareCardModal visible={shareOpen} data={session} onClose={() => setShareOpen(false)} />
+      <ShareCardModal
+        visible={shareOpen}
+        data={{ ...session, photoUri: photoUriFor(session.vehiclePhoto) }}
+        onClose={() => setShareOpen(false)}
+      />
     </ScrollView>
   );
 }

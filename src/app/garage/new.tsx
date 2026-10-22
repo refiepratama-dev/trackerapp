@@ -1,13 +1,15 @@
 import { useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
-import { useEffect, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { PrimaryButton } from '@/components/primary-button';
 import { TextField } from '@/components/text-field';
+import { VehicleAvatar } from '@/components/vehicle-avatar';
 import { Brand, Spacing } from '@/constants/theme';
 import { createVehicle, listVehicleTypes, type VehicleType } from '@/db/vehicles';
 import { useTheme } from '@/hooks/use-theme';
+import { deletePhotoFile, photoUriFor, pickVehiclePhoto } from '@/vehicles/photo';
 
 const NEW_TYPE = 'new' as const;
 
@@ -22,6 +24,9 @@ export default function NewVehicleScreen() {
   const [customType, setCustomType] = useState('');
   const [brandModel, setBrandModel] = useState('');
   const [saving, setSaving] = useState(false);
+  const [photoFile, setPhotoFile] = useState<string | null>(null);
+  const savedRef = useRef(false);
+  const photoFileRef = useRef<string | null>(null);
 
   useEffect(() => {
     listVehicleTypes(db).then((list) => {
@@ -29,6 +34,37 @@ export default function NewVehicleScreen() {
       setSelected((current) => current ?? list[0]?.id ?? null);
     });
   }, [db]);
+
+  // A photo picked but never saved should not stay on the phone.
+  useEffect(
+    () => () => {
+      if (!savedRef.current) deletePhotoFile(photoFileRef.current);
+    },
+    [],
+  );
+
+  const choosePhoto = async () => {
+    try {
+      const result = await pickVehiclePhoto();
+      if (result.status === 'denied') {
+        Alert.alert(
+          'Photos are off',
+          'Allow photo access for this app in Settings to pick a vehicle photo.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Open Settings', onPress: () => Linking.openSettings() },
+          ],
+        );
+        return;
+      }
+      if (result.status !== 'picked') return;
+      deletePhotoFile(photoFileRef.current);
+      photoFileRef.current = result.fileName;
+      setPhotoFile(result.fileName);
+    } catch {
+      Alert.alert('Could not pick photo', 'Something went wrong. Please try again.');
+    }
+  };
 
   const typeValid = selected === NEW_TYPE ? customType.trim().length > 0 : selected !== null;
   const canSave = name.trim().length > 0 && typeValid && !saving;
@@ -42,7 +78,9 @@ export default function NewVehicleScreen() {
         typeId: typeof selected === 'number' ? selected : undefined,
         customTypeName: selected === NEW_TYPE ? customType : undefined,
         brandModel,
+        photoFile,
       });
+      savedRef.current = true;
       router.back();
     } catch {
       setSaving(false);
@@ -60,13 +98,24 @@ export default function NewVehicleScreen() {
       contentContainerStyle={styles.content}
       keyboardShouldPersistTaps="handled"
       contentInsetAdjustmentBehavior="automatic">
+      <View style={styles.photoRow}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Choose vehicle photo"
+          onPress={choosePhoto}>
+          <VehicleAvatar name={name || '?'} photoUri={photoUriFor(photoFile)} size={88} />
+        </Pressable>
+        <Text style={[styles.label, { color: theme.textSecondary }]}>
+          {photoFile ? 'Tap to change photo' : 'Add a photo (optional)'}
+        </Text>
+      </View>
+
       <TextField
         label="Name"
         placeholder="e.g. Blue Thunder"
         value={name}
         onChangeText={setName}
         maxLength={30}
-        autoFocus
         returnKeyType="done"
       />
 
@@ -85,8 +134,7 @@ export default function NewVehicleScreen() {
                   styles.chip,
                   { backgroundColor: active ? Brand.accent : theme.backgroundElement },
                 ]}>
-                <Text
-                  style={[styles.chipLabel, { color: active ? Brand.onAccent : theme.text }]}>
+                <Text style={[styles.chipLabel, { color: active ? Brand.onAccent : theme.text }]}>
                   {chip.label}
                 </Text>
               </Pressable>
@@ -122,6 +170,10 @@ const styles = StyleSheet.create({
   content: {
     padding: Spacing.three,
     gap: Spacing.four,
+  },
+  photoRow: {
+    alignItems: 'center',
+    gap: Spacing.two,
   },
   group: {
     gap: Spacing.two,

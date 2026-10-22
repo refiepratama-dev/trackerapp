@@ -1,13 +1,15 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useState } from 'react';
-import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, FlatList, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { GlassPanel } from '@/components/glass-panel';
 import { PrimaryButton } from '@/components/primary-button';
-import { Brand, BottomTabInset, Spacing } from '@/constants/theme';
-import { archiveVehicle, listActiveVehicles, type Vehicle } from '@/db/vehicles';
+import { VehicleAvatar } from '@/components/vehicle-avatar';
+import { BottomTabInset, Spacing } from '@/constants/theme';
+import { archiveVehicle, listActiveVehicles, setVehiclePhoto, type Vehicle } from '@/db/vehicles';
 import { useTheme } from '@/hooks/use-theme';
+import { deletePhotoFile, photoUriFor, pickVehiclePhoto } from '@/vehicles/photo';
 
 export default function GarageScreen() {
   const db = useSQLiteContext();
@@ -44,6 +46,45 @@ export default function GarageScreen() {
     );
   };
 
+  const choosePhoto = async (vehicle: Vehicle) => {
+    try {
+      const result = await pickVehiclePhoto();
+      if (result.status === 'denied') {
+        Alert.alert(
+          'Photos are off',
+          'Allow photo access for this app in Settings to pick a vehicle photo.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Open Settings', onPress: () => Linking.openSettings() },
+          ],
+        );
+        return;
+      }
+      if (result.status !== 'picked') return;
+      deletePhotoFile(await setVehiclePhoto(db, vehicle.id, result.fileName));
+      await load();
+    } catch {
+      Alert.alert('Could not set photo', 'Something went wrong. Please try again.');
+    }
+  };
+
+  const removePhoto = async (vehicle: Vehicle) => {
+    deletePhotoFile(await setVehiclePhoto(db, vehicle.id, null));
+    await load();
+  };
+
+  const openPhotoMenu = (vehicle: Vehicle) => {
+    if (!vehicle.photoFile) {
+      choosePhoto(vehicle);
+      return;
+    }
+    Alert.alert(vehicle.name, undefined, [
+      { text: 'Choose new photo', onPress: () => choosePhoto(vehicle) },
+      { text: 'Remove photo', style: 'destructive', onPress: () => removePhoto(vehicle) },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  };
+
   return (
     <FlatList
       data={vehicles}
@@ -66,9 +107,12 @@ export default function GarageScreen() {
       }
       renderItem={({ item }) => (
         <GlassPanel style={styles.card}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarLetter}>{item.name.charAt(0).toUpperCase()}</Text>
-          </View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Change photo of ${item.name}`}
+            onPress={() => openPhotoMenu(item)}>
+            <VehicleAvatar name={item.name} photoUri={photoUriFor(item.photoFile)} size={56} />
+          </Pressable>
           <View style={styles.info}>
             <Text style={[styles.title, { color: theme.text }]} numberOfLines={1}>
               {item.name}
@@ -102,19 +146,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.three,
-  },
-  avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: Brand.accent,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarLetter: {
-    color: Brand.onAccent,
-    fontSize: 20,
-    fontWeight: '700',
   },
   info: {
     flex: 1,
