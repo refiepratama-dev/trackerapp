@@ -12,6 +12,7 @@ export default function GarageLayout() {
       }}>
       <Stack.Screen name="index" options={{ title: 'Garage', headerLargeTitle: true }} />
       <Stack.Screen name="new" options={{ title: 'New vehicle', presentation: 'modal' }} />
+      <Stack.Screen name="edit" options={{ title: 'Edit vehicle', presentation: 'modal' }} />
     </Stack>
   );
 }

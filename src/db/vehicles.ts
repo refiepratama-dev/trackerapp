@@ -122,3 +122,81 @@ export async function setVehiclePhoto(
   await db.runAsync('UPDATE vehicles SET photo_uri = ? WHERE id = ?', photoFile, id);
   return previous?.photo_uri ?? null;
 }
+
+export async function getVehicle(db: SQLiteDatabase, id: number): Promise<Vehicle | null> {
+  const row = await db.getFirstAsync<{
+    id: number;
+    name: string;
+    type_id: number;
+    type_name: string;
+    brand_model: string | null;
+    photo_uri: string | null;
+    created_at: number;
+  }>(
+    `SELECT v.id, v.name, v.type_id, t.name AS type_name, v.brand_model, v.photo_uri, v.created_at
+       FROM vehicles v
+       JOIN vehicle_types t ON t.id = v.type_id
+      WHERE v.id = ?`,
+    id,
+  );
+  if (!row) return null;
+  return {
+    id: row.id,
+    name: row.name,
+    typeId: row.type_id,
+    typeName: row.type_name,
+    brandModel: row.brand_model,
+    photoFile: row.photo_uri,
+    createdAt: row.created_at,
+  };
+}
+
+/** Saves the edited fields of a vehicle (and its custom type, if any) in one transaction. */
+export async function updateVehicle(
+  db: SQLiteDatabase,
+  id: number,
+  input: NewVehicleInput,
+): Promise<void> {
+  const name = input.name.trim();
+  if (!name) throw new Error('Vehicle name is required.');
+
+  await db.withTransactionAsync(async () => {
+    const typeId = input.customTypeName?.trim()
+      ? await findOrCreateType(db, input.customTypeName)
+      : input.typeId;
+    if (typeId === undefined) throw new Error('Vehicle type is required.');
+
+    await db.runAsync(
+      'UPDATE vehicles SET name = ?, type_id = ?, brand_model = ?, photo_uri = ? WHERE id = ?',
+      name,
+      typeId,
+      input.brandModel?.trim() || null,
+      input.photoFile ?? null,
+      id,
+    );
+  });
+}
+
+export async function countVehicleSessions(db: SQLiteDatabase, id: number): Promise<number> {
+  const row = await db.getFirstAsync<{ n: number }>(
+    'SELECT COUNT(*) AS n FROM sessions WHERE vehicle_id = ?',
+    id,
+  );
+  return row?.n ?? 0;
+}
+
+/**
+ * Removes a vehicle from the garage. A vehicle with no sessions is deleted for good. One with
+ * sessions is archived instead, so its History (and the name on those sessions) is kept.
+ */
+export async function removeVehicle(
+  db: SQLiteDatabase,
+  id: number,
+): Promise<'deleted' | 'archived'> {
+  if ((await countVehicleSessions(db, id)) > 0) {
+    await archiveVehicle(db, id);
+    return 'archived';
+  }
+  await db.runAsync('DELETE FROM vehicles WHERE id = ?', id);
+  return 'deleted';
+}
