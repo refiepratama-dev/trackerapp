@@ -12,8 +12,6 @@ export type Vehicle = {
   typeId: number;
   typeName: string;
   brandModel: string | null;
-  /** Name of the photo file in the app's photo folder (see `src/vehicles/photo.ts`). */
-  photoFile: string | null;
   createdAt: number;
 };
 
@@ -24,7 +22,6 @@ export type NewVehicleInput = {
   /** A type the user typed in. It is reused if one with the same name already exists. */
   customTypeName?: string;
   brandModel?: string;
-  photoFile?: string | null;
 };
 
 export async function listVehicleTypes(db: SQLiteDatabase): Promise<VehicleType[]> {
@@ -42,10 +39,9 @@ export async function listActiveVehicles(db: SQLiteDatabase): Promise<Vehicle[]>
     type_id: number;
     type_name: string;
     brand_model: string | null;
-    photo_uri: string | null;
     created_at: number;
   }>(
-    `SELECT v.id, v.name, v.type_id, t.name AS type_name, v.brand_model, v.photo_uri, v.created_at
+    `SELECT v.id, v.name, v.type_id, t.name AS type_name, v.brand_model, v.created_at
        FROM vehicles v
        JOIN vehicle_types t ON t.id = v.type_id
       WHERE v.archived = 0
@@ -57,7 +53,6 @@ export async function listActiveVehicles(db: SQLiteDatabase): Promise<Vehicle[]>
     typeId: row.type_id,
     typeName: row.type_name,
     brandModel: row.brand_model,
-    photoFile: row.photo_uri,
     createdAt: row.created_at,
   }));
 }
@@ -92,11 +87,10 @@ export async function createVehicle(db: SQLiteDatabase, input: NewVehicleInput):
     if (typeId === undefined) throw new Error('Vehicle type is required.');
 
     const result = await db.runAsync(
-      'INSERT INTO vehicles (name, type_id, brand_model, photo_uri, created_at) VALUES (?, ?, ?, ?, ?)',
+      'INSERT INTO vehicles (name, type_id, brand_model, created_at) VALUES (?, ?, ?, ?)',
       name,
       typeId,
       input.brandModel?.trim() || null,
-      input.photoFile ?? null,
       Date.now(),
     );
     vehicleId = result.lastInsertRowId;
@@ -109,20 +103,6 @@ export async function archiveVehicle(db: SQLiteDatabase, id: number): Promise<vo
   await db.runAsync('UPDATE vehicles SET archived = 1 WHERE id = ?', id);
 }
 
-/** Sets or clears a vehicle's photo. Returns the previous file name so the caller can delete it. */
-export async function setVehiclePhoto(
-  db: SQLiteDatabase,
-  id: number,
-  photoFile: string | null,
-): Promise<string | null> {
-  const previous = await db.getFirstAsync<{ photo_uri: string | null }>(
-    'SELECT photo_uri FROM vehicles WHERE id = ?',
-    id,
-  );
-  await db.runAsync('UPDATE vehicles SET photo_uri = ? WHERE id = ?', photoFile, id);
-  return previous?.photo_uri ?? null;
-}
-
 export async function getVehicle(db: SQLiteDatabase, id: number): Promise<Vehicle | null> {
   const row = await db.getFirstAsync<{
     id: number;
@@ -130,10 +110,9 @@ export async function getVehicle(db: SQLiteDatabase, id: number): Promise<Vehicl
     type_id: number;
     type_name: string;
     brand_model: string | null;
-    photo_uri: string | null;
     created_at: number;
   }>(
-    `SELECT v.id, v.name, v.type_id, t.name AS type_name, v.brand_model, v.photo_uri, v.created_at
+    `SELECT v.id, v.name, v.type_id, t.name AS type_name, v.brand_model, v.created_at
        FROM vehicles v
        JOIN vehicle_types t ON t.id = v.type_id
       WHERE v.id = ?`,
@@ -146,7 +125,6 @@ export async function getVehicle(db: SQLiteDatabase, id: number): Promise<Vehicl
     typeId: row.type_id,
     typeName: row.type_name,
     brandModel: row.brand_model,
-    photoFile: row.photo_uri,
     createdAt: row.created_at,
   };
 }
@@ -167,11 +145,10 @@ export async function updateVehicle(
     if (typeId === undefined) throw new Error('Vehicle type is required.');
 
     await db.runAsync(
-      'UPDATE vehicles SET name = ?, type_id = ?, brand_model = ?, photo_uri = ? WHERE id = ?',
+      'UPDATE vehicles SET name = ?, type_id = ?, brand_model = ? WHERE id = ?',
       name,
       typeId,
       input.brandModel?.trim() || null,
-      input.photoFile ?? null,
       id,
     );
   });

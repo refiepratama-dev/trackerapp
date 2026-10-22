@@ -8,9 +8,16 @@ export type Settings = {
   unit: DistanceUnit;
   /** Body weight in kg, used only to estimate calories. Null means not set. */
   weightKg: number | null;
+  /** File name of the profile photo (see `src/profile/photo.ts`). Null means no photo. */
+  photoFile: string | null;
 };
 
-export const DEFAULT_SETTINGS: Settings = { userName: '', unit: 'km', weightKg: null };
+export const DEFAULT_SETTINGS: Settings = {
+  userName: '',
+  unit: 'km',
+  weightKg: null,
+  photoFile: null,
+};
 
 function parseWeight(value: string | undefined): number | null {
   const kg = value === undefined ? NaN : Number(value);
@@ -27,6 +34,7 @@ export async function loadSettings(db: SQLiteDatabase): Promise<Settings> {
     userName: stored.userName ?? DEFAULT_SETTINGS.userName,
     unit: stored.unit === 'mi' ? 'mi' : 'km',
     weightKg: parseWeight(stored.weightKg),
+    photoFile: stored.photoFile || null,
   };
 }
 

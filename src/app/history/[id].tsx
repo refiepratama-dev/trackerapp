@@ -9,15 +9,17 @@ import { RouteMap } from '@/components/route-map';
 import { ShareCardModal } from '@/components/share-card-modal';
 import { SessionStatsPanel } from '@/components/session-stats';
 import { Brand, Colors, Spacing } from '@/constants/theme';
+import { useSettings } from '@/context/settings-context';
 import { deleteSession, getSession, type SessionDetail } from '@/db/sessions';
 import { formatSessionDate } from '@/tracking/format-date';
-import { photoUriFor } from '@/vehicles/photo';
+import { photoUriFor } from '@/profile/photo';
 
 const { text, textSecondary } = Colors.dark;
 
 export default function SessionDetailScreen() {
   const db = useSQLiteContext();
   const router = useRouter();
+  const { settings } = useSettings();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [session, setSession] = useState<SessionDetail | null>(null);
   const [loaded, setLoaded] = useState(false);
@@ -98,7 +100,7 @@ export default function SessionDetailScreen() {
       <PrimaryButton label="Delete session" tone="glass" onPress={confirmDelete} />
       <ShareCardModal
         visible={shareOpen}
-        data={{ ...session, photoUri: photoUriFor(session.vehiclePhoto) }}
+        data={{ ...session, photoUri: photoUriFor(settings.photoFile) }}
         onClose={() => setShareOpen(false)}
       />
     </ScrollView>

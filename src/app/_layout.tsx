@@ -1,6 +1,7 @@
 import { DarkTheme, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { SQLiteProvider } from 'expo-sqlite';
+import { useEffect } from 'react';
 import { Appearance, StyleSheet } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
@@ -9,6 +10,7 @@ import AppTabs from '@/components/app-tabs';
 import { Brand, Colors } from '@/constants/theme';
 import { SettingsProvider } from '@/context/settings-context';
 import { migrate } from '@/db/migrate';
+import { removeLegacyVehiclePhotos } from '@/profile/photo';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -27,6 +29,11 @@ const navigationTheme = {
 };
 
 export default function TabLayout() {
+  // Vehicles no longer have photos; clear the folder an earlier version created.
+  useEffect(() => {
+    removeLegacyVehiclePhotos();
+  }, []);
+
   return (
     <GestureHandlerRootView style={styles.root}>
       <ThemeProvider value={navigationTheme}>

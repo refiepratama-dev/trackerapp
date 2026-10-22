@@ -34,7 +34,7 @@ import {
 } from '@/tracking/format';
 import { estimateCalories } from '@/tracking/calories';
 import { useRecorder } from '@/tracking/use-recorder';
-import { photoUriFor } from '@/vehicles/photo';
+import { photoUriFor } from '@/profile/photo';
 
 type Summary = {
   vehicleName: string;
@@ -153,7 +153,7 @@ export default function RecordScreen() {
     }
     setSummary({
       vehicleName: selected.name,
-      photoUri: photoUriFor(selected.photoFile),
+      photoUri: photoUriFor(settings.photoFile),
       startedAt: result.startedAt,
       distanceM: result.distanceM,
       durationS: result.durationS,

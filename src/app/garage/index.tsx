@@ -16,7 +16,6 @@ import {
   type Vehicle,
 } from '@/db/vehicles';
 import { useTheme } from '@/hooks/use-theme';
-import { deletePhotoFile, photoUriFor } from '@/vehicles/photo';
 
 export default function GarageScreen() {
   const db = useSQLiteContext();
@@ -60,9 +59,7 @@ export default function GarageScreen() {
         text: 'Delete',
         style: 'destructive',
         onPress: async () => {
-          // A vehicle with sessions is only archived, so its photo stays for those share cards.
-          const result = await removeVehicle(db, vehicle.id);
-          if (result === 'deleted') deletePhotoFile(vehicle.photoFile);
+          await removeVehicle(db, vehicle.id);
           setVehicles((current) => current.filter((v) => v.id !== vehicle.id));
         },
       },
@@ -135,11 +132,7 @@ export default function GarageScreen() {
               }}>
               {({ pressed }) => (
                 <GlassPanel style={[styles.card, pressed && styles.pressed]}>
-                  <VehicleAvatar
-                    name={item.name}
-                    photoUri={photoUriFor(item.photoFile)}
-                    size={56}
-                  />
+                  <VehicleAvatar name={item.name} size={56} />
                   <View style={styles.info}>
                     <Text style={[styles.title, { color: theme.text }]} numberOfLines={1}>
                       {item.name}

@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { GlassPanel } from '@/components/glass-panel';
+import { ProfilePhoto } from '@/components/profile-photo';
 import { TextField } from '@/components/text-field';
 import { Brand, BottomTabInset, Colors, Spacing } from '@/constants/theme';
 import { useSettings } from '@/context/settings-context';
+import { deletePhotoFile, photoUriFor, pickProfilePhoto } from '@/profile/photo';
 import { formatWeight, parseWeightInput, type DistanceUnit } from '@/tracking/format';
 
 const { text, textSecondary } = Colors.dark;
@@ -48,6 +50,44 @@ export default function SettingsScreen() {
     if (kg !== settings.weightKg) update({ weightKg: kg });
   };
 
+  const setPhoto = async (fileName: string | null) => {
+    const previous = settings.photoFile;
+    await update({ photoFile: fileName });
+    deletePhotoFile(previous);
+  };
+
+  const choosePhoto = async () => {
+    try {
+      const result = await pickProfilePhoto();
+      if (result.status === 'denied') {
+        Alert.alert(
+          'Photos are off',
+          'Allow photo access for this app in Settings to pick a profile photo.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Open Settings', onPress: () => Linking.openSettings() },
+          ],
+        );
+        return;
+      }
+      if (result.status === 'picked') await setPhoto(result.fileName);
+    } catch {
+      Alert.alert('Could not set photo', 'Something went wrong. Please try again.');
+    }
+  };
+
+  const openPhotoMenu = () => {
+    if (!settings.photoFile) {
+      choosePhoto();
+      return;
+    }
+    Alert.alert('Profile photo', undefined, [
+      { text: 'Choose new photo', onPress: choosePhoto },
+      { text: 'Remove photo', style: 'destructive', onPress: () => setPhoto(null) },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  };
+
   const saveName = () => {
     const trimmed = name.trim();
     setName(trimmed);
@@ -60,6 +100,18 @@ export default function SettingsScreen() {
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode="on-drag"
       contentContainerStyle={styles.content}>
+      <View style={styles.photoGroup}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Profile photo"
+          onPress={openPhotoMenu}>
+          <ProfilePhoto photoUri={photoUriFor(settings.photoFile)} size={104} />
+        </Pressable>
+        <Text style={styles.hint}>
+          {settings.photoFile ? 'Tap to change photo' : 'Add a profile photo'}
+        </Text>
+      </View>
+
       <View style={styles.group}>
         <TextField
           label="Your name"
@@ -71,7 +123,9 @@ export default function SettingsScreen() {
           maxLength={30}
           returnKeyType="done"
         />
-        <Text style={styles.hint}>Leave it empty to keep your name off the cards.</Text>
+        <Text style={styles.hint}>
+          Your photo and name appear on share cards. Leave them empty to keep them off.
+        </Text>
       </View>
 
       <View style={styles.group}>
@@ -128,6 +182,10 @@ const styles = StyleSheet.create({
     padding: Spacing.three,
     paddingBottom: BottomTabInset + Spacing.four,
     gap: Spacing.four,
+  },
+  photoGroup: {
+    alignItems: 'center',
+    gap: Spacing.two,
   },
   group: {
     gap: Spacing.two,
