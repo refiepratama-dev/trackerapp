@@ -6,6 +6,8 @@ import {
   Linking,
   Modal,
   PixelRatio,
+  Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   useWindowDimensions,
@@ -15,8 +17,14 @@ import { captureRef } from 'react-native-view-shot';
 
 import { GlassIconButton } from '@/components/glass-icon-button';
 import { PrimaryButton } from '@/components/primary-button';
-import { CARD_ASPECT, ShareCard, type ShareCardData } from '@/components/share-card';
-import { Colors, Spacing } from '@/constants/theme';
+import {
+  CARD_ASPECT,
+  SHARE_TEMPLATES,
+  ShareCard,
+  type ShareCardData,
+  type TemplateId,
+} from '@/components/share-card';
+import { Brand, Colors, Spacing } from '@/constants/theme';
 
 /** Exported image size: Instagram Story. */
 const EXPORT_WIDTH_PX = 1080;
@@ -32,10 +40,11 @@ type ShareCardModalProps = {
 export function ShareCardModal({ visible, data, onClose }: ShareCardModalProps) {
   const cardRef = useRef<View>(null);
   const [busy, setBusy] = useState<'save' | 'share' | null>(null);
+  const [template, setTemplate] = useState<TemplateId>('classic');
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
 
   // Largest 9:16 card that still leaves room for the header and two buttons.
-  const cardWidth = Math.min(windowWidth - Spacing.four * 2, (windowHeight - 320) / CARD_ASPECT);
+  const cardWidth = Math.min(windowWidth - Spacing.four * 2, (windowHeight - 380) / CARD_ASPECT);
 
   /** Renders the card to a 1080 x 1920 PNG in the cache folder and returns its file URI. */
   const renderCard = async (): Promise<string> => {
@@ -109,8 +118,28 @@ export function ShareCardModal({ visible, data, onClose }: ShareCardModalProps) 
         </View>
 
         <View style={styles.preview}>
-          {data && <ShareCard ref={cardRef} data={data} width={cardWidth} />}
+          {data && <ShareCard ref={cardRef} template={template} data={data} width={cardWidth} />}
         </View>
+
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.chipScroll}
+          contentContainerStyle={styles.chips}>
+          {SHARE_TEMPLATES.map((t) => {
+            const active = t.id === template;
+            return (
+              <Pressable
+                key={t.id}
+                accessibilityRole="button"
+                accessibilityState={{ selected: active }}
+                onPress={() => setTemplate(t.id)}
+                style={[styles.chip, active && styles.chipActive]}>
+                <Text style={[styles.chipLabel, active && styles.chipLabelActive]}>{t.label}</Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
 
         <View style={styles.buttons}>
           <PrimaryButton
@@ -152,6 +181,32 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  chipScroll: {
+    flexGrow: 0,
+  },
+  chips: {
+    gap: Spacing.two,
+    paddingHorizontal: Spacing.one,
+  },
+  chip: {
+    height: 36,
+    borderRadius: 18,
+    paddingHorizontal: Spacing.three,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.dark.backgroundElement,
+  },
+  chipActive: {
+    backgroundColor: Brand.accent,
+  },
+  chipLabel: {
+    color: Colors.dark.text,
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  chipLabelActive: {
+    color: Brand.onAccent,
   },
   buttons: {
     gap: Spacing.two,
