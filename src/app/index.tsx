@@ -33,9 +33,11 @@ import {
   speedUnitLabel,
 } from '@/tracking/format';
 import { useRecorder } from '@/tracking/use-recorder';
+import { photoUriFor } from '@/vehicles/photo';
 
 type Summary = {
   vehicleName: string;
+  photoUri: string | null;
   startedAt: number;
   distanceM: number;
   durationS: number;
@@ -141,6 +143,7 @@ export default function RecordScreen() {
     }
     setSummary({
       vehicleName: selected.name,
+      photoUri: photoUriFor(selected.photoFile),
       startedAt: result.startedAt,
       distanceM: result.distanceM,
       durationS: result.durationS,
@@ -201,8 +204,7 @@ export default function RecordScreen() {
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.chips}
-        >
+          contentContainerStyle={styles.chips}>
           {vehicles.map((v) => {
             const active = v.id === selectedId;
             return (
@@ -211,8 +213,7 @@ export default function RecordScreen() {
                 accessibilityRole="button"
                 accessibilityState={{ selected: active }}
                 onPress={() => setSelectedId(v.id)}
-                style={[styles.chip, active && styles.chipActive]}
-              >
+                style={[styles.chip, active && styles.chipActive]}>
                 <Text style={[styles.chipLabel, active && styles.chipLabelActive]}>{v.name}</Text>
               </Pressable>
             );

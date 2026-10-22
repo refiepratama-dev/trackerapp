@@ -1,5 +1,5 @@
 import { forwardRef, useMemo } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, Defs, Polyline, RadialGradient, Rect, Stop } from 'react-native-svg';
 
 import { Brand, Colors } from '@/constants/theme';
@@ -18,6 +18,8 @@ import { formatSessionDate } from '@/tracking/format-date';
 /** Everything the card shows. */
 export type ShareCardData = {
   vehicleName: string;
+  /** Full address of the vehicle's photo; the card has no picture without it. */
+  photoUri?: string | null;
   startedAt: number;
   distanceM: number;
   durationS: number;
@@ -63,9 +65,19 @@ export const ShareCard = forwardRef<View, ShareCardProps>(function ShareCard({ d
 
       <View style={{ paddingHorizontal: 20 * u, paddingTop: 44 * u }}>
         <Text style={[styles.brand, { fontSize: 13 * u, letterSpacing: 3 * u }]}>ROLLA</Text>
-        <Text style={[styles.vehicle, { fontSize: 40 * u, lineHeight: 46 * u }]} numberOfLines={2}>
-          {data.vehicleName}
-        </Text>
+        <View style={[styles.vehicleRow, { gap: 14 * u, marginTop: 8 * u }]}>
+          {data.photoUri ? (
+            <Image
+              source={{ uri: data.photoUri }}
+              style={{ width: 64 * u, height: 64 * u, borderRadius: 32 * u }}
+            />
+          ) : null}
+          <Text
+            style={[styles.vehicle, { fontSize: 40 * u, lineHeight: 46 * u }]}
+            numberOfLines={2}>
+            {data.vehicleName}
+          </Text>
+        </View>
         <Text style={[styles.secondary, { fontSize: 15 * u, marginTop: 4 * u }]}>
           {settings.userName
             ? `${settings.userName} · ${formatSessionDate(data.startedAt)}`
@@ -111,8 +123,7 @@ export const ShareCard = forwardRef<View, ShareCardProps>(function ShareCard({ d
             borderRadius: 28 * u,
             gap: 12 * u,
           },
-        ]}
-      >
+        ]}>
         <View style={styles.distanceRow}>
           <Text style={[styles.distance, { fontSize: 64 * u, lineHeight: 70 * u }]}>
             {formatDistance(data.distanceM, unit)}
@@ -157,10 +168,14 @@ const styles = StyleSheet.create({
     color: Brand.accent,
     fontWeight: '700',
   },
+  vehicleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   vehicle: {
+    flex: 1,
     color: Colors.dark.text,
     fontWeight: '700',
-    marginTop: 8,
   },
   secondary: {
     color: Colors.dark.textSecondary,

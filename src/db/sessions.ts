@@ -16,6 +16,8 @@ export type SessionListItem = {
   id: number;
   vehicleId: number;
   vehicleName: string;
+  /** Photo file name of the vehicle (see `src/vehicles/photo.ts`), if it has one. */
+  vehiclePhoto: string | null;
   startedAt: number;
   durationS: number;
   distanceM: number;
@@ -53,13 +55,14 @@ export async function listSessions(db: SQLiteDatabase): Promise<SessionListItem[
     id: number;
     vehicle_id: number;
     vehicle_name: string;
+    vehicle_photo: string | null;
     started_at: number;
     duration_s: number;
     distance_m: number;
     max_speed_ms: number;
   }>(
-    `SELECT s.id, s.vehicle_id, v.name AS vehicle_name, s.started_at, s.duration_s,
-            s.distance_m, s.max_speed_ms
+    `SELECT s.id, s.vehicle_id, v.name AS vehicle_name, v.photo_uri AS vehicle_photo,
+            s.started_at, s.duration_s, s.distance_m, s.max_speed_ms
        FROM sessions s
        JOIN vehicles v ON v.id = s.vehicle_id
       ORDER BY s.started_at DESC, s.id DESC`,
@@ -68,6 +71,7 @@ export async function listSessions(db: SQLiteDatabase): Promise<SessionListItem[
     id: row.id,
     vehicleId: row.vehicle_id,
     vehicleName: row.vehicle_name,
+    vehiclePhoto: row.vehicle_photo,
     startedAt: row.started_at,
     durationS: row.duration_s,
     distanceM: row.distance_m,
@@ -80,14 +84,15 @@ export async function getSession(db: SQLiteDatabase, id: number): Promise<Sessio
     id: number;
     vehicle_id: number;
     vehicle_name: string;
+    vehicle_photo: string | null;
     started_at: number;
     duration_s: number;
     distance_m: number;
     max_speed_ms: number;
     route: string;
   }>(
-    `SELECT s.id, s.vehicle_id, v.name AS vehicle_name, s.started_at, s.duration_s,
-            s.distance_m, s.max_speed_ms, s.route
+    `SELECT s.id, s.vehicle_id, v.name AS vehicle_name, v.photo_uri AS vehicle_photo,
+            s.started_at, s.duration_s, s.distance_m, s.max_speed_ms, s.route
        FROM sessions s
        JOIN vehicles v ON v.id = s.vehicle_id
       WHERE s.id = ?`,
@@ -107,6 +112,7 @@ export async function getSession(db: SQLiteDatabase, id: number): Promise<Sessio
     id: row.id,
     vehicleId: row.vehicle_id,
     vehicleName: row.vehicle_name,
+    vehiclePhoto: row.vehicle_photo,
     startedAt: row.started_at,
     durationS: row.duration_s,
     distanceM: row.distance_m,

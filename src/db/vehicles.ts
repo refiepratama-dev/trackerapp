@@ -12,7 +12,8 @@ export type Vehicle = {
   typeId: number;
   typeName: string;
   brandModel: string | null;
-  photoUri: string | null;
+  /** Name of the photo file in the app's photo folder (see `src/vehicles/photo.ts`). */
+  photoFile: string | null;
   createdAt: number;
 };
 
@@ -23,6 +24,7 @@ export type NewVehicleInput = {
   /** A type the user typed in. It is reused if one with the same name already exists. */
   customTypeName?: string;
   brandModel?: string;
+  photoFile?: string | null;
 };
 
 export async function listVehicleTypes(db: SQLiteDatabase): Promise<VehicleType[]> {
@@ -55,7 +57,7 @@ export async function listActiveVehicles(db: SQLiteDatabase): Promise<Vehicle[]>
     typeId: row.type_id,
     typeName: row.type_name,
     brandModel: row.brand_model,
-    photoUri: row.photo_uri,
+    photoFile: row.photo_uri,
     createdAt: row.created_at,
   }));
 }
@@ -90,10 +92,11 @@ export async function createVehicle(db: SQLiteDatabase, input: NewVehicleInput):
     if (typeId === undefined) throw new Error('Vehicle type is required.');
 
     const result = await db.runAsync(
-      'INSERT INTO vehicles (name, type_id, brand_model, created_at) VALUES (?, ?, ?, ?)',
+      'INSERT INTO vehicles (name, type_id, brand_model, photo_uri, created_at) VALUES (?, ?, ?, ?, ?)',
       name,
       typeId,
       input.brandModel?.trim() || null,
+      input.photoFile ?? null,
       Date.now(),
     );
     vehicleId = result.lastInsertRowId;
@@ -104,4 +107,18 @@ export async function createVehicle(db: SQLiteDatabase, input: NewVehicleInput):
 /** Hides a vehicle from the garage. Its sessions are kept. */
 export async function archiveVehicle(db: SQLiteDatabase, id: number): Promise<void> {
   await db.runAsync('UPDATE vehicles SET archived = 1 WHERE id = ?', id);
+}
+
+/** Sets or clears a vehicle's photo. Returns the previous file name so the caller can delete it. */
+export async function setVehiclePhoto(
+  db: SQLiteDatabase,
+  id: number,
+  photoFile: string | null,
+): Promise<string | null> {
+  const previous = await db.getFirstAsync<{ photo_uri: string | null }>(
+    'SELECT photo_uri FROM vehicles WHERE id = ?',
+    id,
+  );
+  await db.runAsync('UPDATE vehicles SET photo_uri = ? WHERE id = ?', photoFile, id);
+  return previous?.photo_uri ?? null;
 }
