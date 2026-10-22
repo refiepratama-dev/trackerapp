@@ -90,6 +90,8 @@ export default function SessionDetailScreen() {
         distanceM={session.distanceM}
         durationS={session.durationS}
         maxSpeedMs={session.maxSpeedMs}
+        elevationGainM={session.elevationGainM}
+        caloriesKcal={session.caloriesKcal}
       />
 
       <PrimaryButton label="Share card" onPress={() => setShareOpen(true)} />

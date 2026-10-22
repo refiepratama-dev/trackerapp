@@ -9,6 +9,10 @@ export type NewSessionInput = {
   distanceM: number;
   maxSpeedMs: number;
   route: Coordinate[];
+  /** Total climb in meters, if the phone reported altitude. */
+  elevationGainM?: number | null;
+  /** Estimated kilocalories, if the user has set a body weight. */
+  caloriesKcal?: number | null;
 };
 
 /** A session as shown in the History list. The route is left out to keep the list light. */
@@ -24,19 +28,28 @@ export type SessionListItem = {
   maxSpeedMs: number;
 };
 
-export type SessionDetail = SessionListItem & { route: Coordinate[] };
+export type SessionDetail = SessionListItem & {
+  route: Coordinate[];
+  /** Total climb in meters; null for sessions without altitude data. */
+  elevationGainM: number | null;
+  /** Estimated kilocalories; null when no body weight was set at the time. */
+  caloriesKcal: number | null;
+};
 
 /** Saves a finished session. Short sessions are always saved. Returns the new id. */
 export async function createSession(db: SQLiteDatabase, input: NewSessionInput): Promise<number> {
   const result = await db.runAsync(
-    `INSERT INTO sessions (vehicle_id, started_at, duration_s, distance_m, max_speed_ms, route)
-     VALUES (?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO sessions (vehicle_id, started_at, duration_s, distance_m, max_speed_ms, route,
+                           elevation_gain_m, calories_kcal)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     input.vehicleId,
     input.startedAt,
     Math.round(input.durationS),
     input.distanceM,
     input.maxSpeedMs,
     JSON.stringify(input.route.map((p) => [p.latitude, p.longitude])),
+    input.elevationGainM ?? null,
+    input.caloriesKcal ?? null,
   );
   return result.lastInsertRowId;
 }
@@ -90,9 +103,12 @@ export async function getSession(db: SQLiteDatabase, id: number): Promise<Sessio
     distance_m: number;
     max_speed_ms: number;
     route: string;
+    elevation_gain_m: number | null;
+    calories_kcal: number | null;
   }>(
     `SELECT s.id, s.vehicle_id, v.name AS vehicle_name, v.photo_uri AS vehicle_photo,
-            s.started_at, s.duration_s, s.distance_m, s.max_speed_ms, s.route
+            s.started_at, s.duration_s, s.distance_m, s.max_speed_ms, s.route,
+            s.elevation_gain_m, s.calories_kcal
        FROM sessions s
        JOIN vehicles v ON v.id = s.vehicle_id
       WHERE s.id = ?`,
@@ -118,6 +134,8 @@ export async function getSession(db: SQLiteDatabase, id: number): Promise<Sessio
     distanceM: row.distance_m,
     maxSpeedMs: row.max_speed_ms,
     route,
+    elevationGainM: row.elevation_gain_m,
+    caloriesKcal: row.calories_kcal,
   };
 }
 

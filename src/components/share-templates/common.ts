@@ -5,7 +5,9 @@ import { plotRoute, trimRoute } from '@/share/trim-route';
 import type { Coordinate } from '@/tracking/geo';
 import {
   distanceUnitLabel,
+  elevationUnitLabel,
   formatDistance,
+  formatElevation,
   formatDuration,
   formatSpeed,
   speedUnitLabel,
@@ -22,6 +24,10 @@ export type ShareCardData = {
   durationS: number;
   maxSpeedMs: number;
   route: Coordinate[];
+  /** Total climb in meters; left out of the card when null or missing. */
+  elevationGainM?: number | null;
+  /** Estimated kilocalories; left out of the card when null or missing. */
+  caloriesKcal?: number | null;
 };
 
 /** Every template is designed on a 360 x 640 grid (9:16, Instagram Story) and scaled to `width`. */
@@ -48,6 +54,15 @@ export function useCardStats(data: ShareCardData) {
     avg: formatSpeed(avgSpeedMs, unit),
     maxLabel: `Max ${speedUnitLabel(unit)}`,
     max: formatSpeed(data.maxSpeedMs, unit),
+    /** Climb with its unit, e.g. "42 m"; null when there is no altitude data. */
+    elevation:
+      data.elevationGainM != null
+        ? `${formatElevation(data.elevationGainM, unit)} ${elevationUnitLabel(unit)}`
+        : null,
+    /** Calories as "~312"; null when no body weight was set. */
+    calories: data.caloriesKcal != null ? `~${data.caloriesKcal}` : null,
+    /** How many of the two optional stats are present (0 to 2). */
+    extraCount: (data.elevationGainM != null ? 1 : 0) + (data.caloriesKcal != null ? 1 : 0),
   };
 }
 

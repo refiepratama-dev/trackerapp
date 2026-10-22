@@ -10,7 +10,7 @@ export type FinishedRecording = TrackSnapshot & {
   durationS: number;
 };
 
-const EMPTY: TrackSnapshot = { distanceM: 0, maxSpeedMs: 0, route: [] };
+const EMPTY: TrackSnapshot = { distanceM: 0, maxSpeedMs: 0, route: [], elevationGainM: null };
 
 type Clock = { startedAt: number; pausedAt: number | null; pausedTotalMs: number };
 const IDLE_CLOCK: Clock = { startedAt: 0, pausedAt: null, pausedTotalMs: 0 };
@@ -54,6 +54,8 @@ export function useRecorder() {
           timestamp: location.timestamp,
           accuracy: location.coords.accuracy,
           speed: location.coords.speed,
+          altitude: location.coords.altitude,
+          altitudeAccuracy: location.coords.altitudeAccuracy,
         });
         if (changed) setSnapshot(tracker.current.snapshot());
       },
@@ -136,6 +138,7 @@ export function useRecorder() {
     phase,
     distanceM: snapshot.distanceM,
     maxSpeedMs: snapshot.maxSpeedMs,
+    elevationGainM: snapshot.elevationGainM,
     route: snapshot.route,
     lastPoint,
     elapsedS: Math.floor(elapsedMs / 1000),

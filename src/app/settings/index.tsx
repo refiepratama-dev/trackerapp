@@ -5,7 +5,7 @@ import { GlassPanel } from '@/components/glass-panel';
 import { TextField } from '@/components/text-field';
 import { Brand, BottomTabInset, Colors, Spacing } from '@/constants/theme';
 import { useSettings } from '@/context/settings-context';
-import type { DistanceUnit } from '@/tracking/format';
+import { formatWeight, parseWeightInput, type DistanceUnit } from '@/tracking/format';
 
 const { text, textSecondary } = Colors.dark;
 
@@ -23,6 +23,31 @@ export default function SettingsScreen() {
     setName(settings.userName);
   }, [settings.userName]);
 
+  // Body weight is kept in kg and shown in kg or lb depending on the unit.
+  const weightText = (kg: number | null) => (kg === null ? '' : formatWeight(kg, settings.unit));
+  const [weight, setWeight] = useState(weightText(settings.weightKg));
+
+  useEffect(() => {
+    setWeight(weightText(settings.weightKg));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settings.weightKg, settings.unit]);
+
+  const saveWeight = () => {
+    if (weight.trim() === '') {
+      setWeight('');
+      if (settings.weightKg !== null) update({ weightKg: null });
+      return;
+    }
+    const kg = parseWeightInput(weight, settings.unit);
+    // Not a usable number: put back what was saved.
+    if (kg === null) {
+      setWeight(weightText(settings.weightKg));
+      return;
+    }
+    setWeight(formatWeight(kg, settings.unit));
+    if (kg !== settings.weightKg) update({ weightKg: kg });
+  };
+
   const saveName = () => {
     const trimmed = name.trim();
     setName(trimmed);
@@ -33,8 +58,8 @@ export default function SettingsScreen() {
     <ScrollView
       contentInsetAdjustmentBehavior="automatic"
       keyboardShouldPersistTaps="handled"
-      contentContainerStyle={styles.content}
-    >
+      keyboardDismissMode="on-drag"
+      contentContainerStyle={styles.content}>
       <View style={styles.group}>
         <TextField
           label="Your name"
@@ -60,8 +85,7 @@ export default function SettingsScreen() {
                 accessibilityRole="button"
                 accessibilityState={{ selected: active }}
                 onPress={() => update({ unit: unit.value })}
-                style={[styles.chip, active && styles.chipActive]}
-              >
+                style={[styles.chip, active && styles.chipActive]}>
                 <Text style={[styles.chipLabel, active && styles.chipLabelActive]}>
                   {unit.label}
                 </Text>
@@ -70,6 +94,23 @@ export default function SettingsScreen() {
           })}
         </View>
         <Text style={styles.hint}>Applies to distance and speed everywhere in the app.</Text>
+      </View>
+
+      <View style={styles.group}>
+        <TextField
+          label={`Body weight (${settings.unit === 'km' ? 'kg' : 'lb'}), optional`}
+          placeholder={settings.unit === 'km' ? 'e.g. 65' : 'e.g. 145'}
+          value={weight}
+          onChangeText={setWeight}
+          onBlur={saveWeight}
+          onSubmitEditing={saveWeight}
+          keyboardType="decimal-pad"
+          maxLength={6}
+          returnKeyType="done"
+        />
+        <Text style={styles.hint}>
+          Only used to estimate calories. Leave it empty to hide calories.
+        </Text>
       </View>
 
       <GlassPanel>

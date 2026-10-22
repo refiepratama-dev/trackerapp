@@ -1,6 +1,6 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
-const LATEST_VERSION = 3;
+const LATEST_VERSION = 4;
 
 /** Types every user starts with. Users can add their own on top of these. */
 export const DEFAULT_VEHICLE_TYPES = [
@@ -79,7 +79,17 @@ export async function migrate(db: SQLiteDatabase) {
     version = 3;
   }
 
-  // Later schema steps go here as `if (version === 3) { ... version = 4; }`.
+  if (version === 3) {
+    // Climb in meters and estimated kilocalories. Null for sessions recorded before these existed
+    // (and for calories when no body weight was set).
+    await db.execAsync(`
+      ALTER TABLE sessions ADD COLUMN elevation_gain_m REAL;
+      ALTER TABLE sessions ADD COLUMN calories_kcal INTEGER;
+    `);
+    version = 4;
+  }
+
+  // Later schema steps go here as `if (version === 4) { ... version = 5; }`.
 
   await db.execAsync(`PRAGMA user_version = ${LATEST_VERSION}`);
 }

@@ -24,7 +24,7 @@ export const MinimalCard = forwardRef<View, TemplateProps>(function MinimalCard(
   const height = width * CARD_ASPECT;
   const s = useCardStats(data);
 
-  const routeBox = { width: 280 * u, height: 240 * u };
+  const routeBox = { width: 280 * u, height: (s.extraCount > 0 ? 200 : 240) * u };
   const plotted = usePlottedRoute(data.route, routeBox.width, routeBox.height, 16 * u);
 
   return (
@@ -77,6 +77,13 @@ export const MinimalCard = forwardRef<View, TemplateProps>(function MinimalCard(
         <Text style={[styles.line, { fontSize: 15 * u }]}>
           {s.time} · {s.avg} avg · {s.max} max
         </Text>
+        {s.extraCount > 0 ? (
+          <Text style={[styles.line, { fontSize: 15 * u, marginTop: 6 * u }]}>
+            {[s.elevation ? `${s.elevation} climb` : null, s.calories ? `${s.calories} kcal` : null]
+              .filter(Boolean)
+              .join(' · ')}
+          </Text>
+        ) : null}
       </View>
     </View>
   );

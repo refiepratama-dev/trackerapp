@@ -32,6 +32,7 @@ import {
   formatSpeed,
   speedUnitLabel,
 } from '@/tracking/format';
+import { estimateCalories } from '@/tracking/calories';
 import { useRecorder } from '@/tracking/use-recorder';
 import { photoUriFor } from '@/vehicles/photo';
 
@@ -43,6 +44,8 @@ type Summary = {
   durationS: number;
   maxSpeedMs: number;
   route: Coordinate[];
+  elevationGainM: number | null;
+  caloriesKcal: number | null;
 };
 
 export default function RecordScreen() {
@@ -50,6 +53,7 @@ export default function RecordScreen() {
   const router = useRouter();
   const [permission, requestPermission, refreshPermission] = Location.useForegroundPermissions();
   const recorder = useRecorder();
+  const { settings } = useSettings();
   const { setTabBarHidden } = use(TabBarContext);
 
   // Focus mode: hide the tab bar while a session is running, and bring it back when
@@ -136,8 +140,14 @@ export default function RecordScreen() {
   const finish = async () => {
     if (!selected) return;
     const result = recorder.finish();
+    const caloriesKcal = estimateCalories({
+      typeName: selected.typeName,
+      weightKg: settings.weightKg,
+      durationS: result.durationS,
+      distanceM: result.distanceM,
+    });
     try {
-      await createSession(db, { vehicleId: selected.id, ...result });
+      await createSession(db, { vehicleId: selected.id, ...result, caloriesKcal });
     } catch {
       Alert.alert('Could not save', 'The session could not be saved to your phone.');
     }
@@ -149,6 +159,8 @@ export default function RecordScreen() {
       durationS: result.durationS,
       maxSpeedMs: result.maxSpeedMs,
       route: result.route,
+      elevationGainM: result.elevationGainM,
+      caloriesKcal,
     });
   };
 
@@ -313,6 +325,8 @@ function SummaryView({ summary, onDone }: { summary: Summary; onDone: () => void
         distanceM={summary.distanceM}
         durationS={summary.durationS}
         maxSpeedMs={summary.maxSpeedMs}
+        elevationGainM={summary.elevationGainM}
+        caloriesKcal={summary.caloriesKcal}
       />
       <PrimaryButton label="Share card" onPress={() => setShareOpen(true)} />
       <PrimaryButton label="Done" tone="glass" onPress={onDone} />
