@@ -88,7 +88,7 @@ export default function GarageScreen() {
         </View>
       }
       renderItem={({ item }) => (
-        // Swiping the card to the left reveals Edit and Delete on its right.
+        // Tapping opens the vehicle's profile; swiping left reveals Edit and Delete on the right.
         <ReanimatedSwipeable
           ref={swipe.register(item.id)}
           friction={2}
@@ -124,11 +124,11 @@ export default function GarageScreen() {
           <View style={styles.cardBacking}>
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel={`Edit ${item.name}`}
+              accessibilityLabel={`Open ${item.name}`}
               onPress={() => {
                 // A tap while a row is open only closes it, like iOS Mail.
                 if (swipe.consumeTap()) return;
-                edit(item);
+                router.push({ pathname: '/garage/[id]', params: { id: String(item.id) } });
               }}>
               {({ pressed }) => (
                 <GlassPanel style={[styles.card, pressed && styles.pressed]}>
