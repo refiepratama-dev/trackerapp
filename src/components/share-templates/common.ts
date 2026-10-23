@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 
 import { useSettings } from '@/context/settings-context';
-import { plotRoute, trimRoute } from '@/share/trim-route';
+import { plotRoute, ROUTE_PRIVACY_TRIM_M, trimRoute } from '@/share/trim-route';
 import type { Coordinate } from '@/tracking/geo';
 import {
   distanceUnitLabel,
@@ -66,10 +66,15 @@ export function useCardStats(data: ShareCardData) {
   };
 }
 
-/** The privacy-trimmed route projected into a box; null when the ride was too short. */
+/**
+ * The route projected into a box. The start and end are cut for privacy unless the user turned
+ * that off in Settings; null when too little route is left to draw.
+ */
 export function usePlottedRoute(route: Coordinate[], width: number, height: number, pad: number) {
+  const { settings } = useSettings();
+  const trimMeters = settings.hideRouteEnds ? ROUTE_PRIVACY_TRIM_M : 0;
   return useMemo(
-    () => plotRoute(trimRoute(route), width, height, pad),
-    [route, width, height, pad],
+    () => plotRoute(trimRoute(route, trimMeters), width, height, pad),
+    [route, trimMeters, width, height, pad],
   );
 }

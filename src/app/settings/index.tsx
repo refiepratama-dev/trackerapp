@@ -161,6 +161,23 @@ export default function SettingsScreen() {
 
       <View style={styles.group}>
         <View style={styles.switchRow}>
+          <Text style={styles.switchLabel}>Hide start and end of route</Text>
+          <Switch
+            accessibilityLabel="Hide start and end of route"
+            value={settings.hideRouteEnds}
+            onValueChange={(value) => update({ hideRouteEnds: value })}
+            trackColor={{ true: Brand.accent }}
+          />
+        </View>
+        <Text style={styles.hint}>
+          Cuts the first and last 150 m of the route on share cards so your home is not revealed.
+          Rides shorter than 300 m show no route. Turn it off only if you do not mind sharing where
+          you start and finish.
+        </Text>
+      </View>
+
+      <View style={styles.group}>
+        <View style={styles.switchRow}>
           <Text style={styles.switchLabel}>Auto-pause</Text>
           <Switch
             accessibilityLabel="Auto-pause"

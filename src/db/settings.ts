@@ -12,6 +12,8 @@ export type Settings = {
   photoFile: string | null;
   /** Stop the timer automatically when the rider stops moving. */
   autoPause: boolean;
+  /** Cut the start and end of the route on share cards so home and parking spots stay private. */
+  hideRouteEnds: boolean;
 };
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -20,6 +22,7 @@ export const DEFAULT_SETTINGS: Settings = {
   weightKg: null,
   photoFile: null,
   autoPause: true,
+  hideRouteEnds: true,
 };
 
 function parseWeight(value: string | undefined): number | null {
@@ -39,6 +42,7 @@ export async function loadSettings(db: SQLiteDatabase): Promise<Settings> {
     weightKg: parseWeight(stored.weightKg),
     photoFile: stored.photoFile || null,
     autoPause: stored.autoPause !== 'false',
+    hideRouteEnds: stored.hideRouteEnds !== 'false',
   };
 }
 
