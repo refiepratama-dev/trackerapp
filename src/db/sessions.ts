@@ -60,8 +60,14 @@ export async function getLastUsedVehicleId(db: SQLiteDatabase): Promise<number |
   return row?.vehicle_id ?? null;
 }
 
-/** All sessions, newest first. Sessions of archived vehicles are included. */
-export async function listSessions(db: SQLiteDatabase): Promise<SessionListItem[]> {
+/**
+ * All sessions, newest first. Sessions of archived vehicles are included.
+ * Pass a vehicle id to get only that vehicle's sessions.
+ */
+export async function listSessions(
+  db: SQLiteDatabase,
+  vehicleId?: number,
+): Promise<SessionListItem[]> {
   const rows = await db.getAllAsync<{
     id: number;
     vehicle_id: number;
@@ -75,7 +81,10 @@ export async function listSessions(db: SQLiteDatabase): Promise<SessionListItem[
             s.started_at, s.duration_s, s.distance_m, s.max_speed_ms
        FROM sessions s
        JOIN vehicles v ON v.id = s.vehicle_id
+      WHERE (? IS NULL OR s.vehicle_id = ?)
       ORDER BY s.started_at DESC, s.id DESC`,
+    vehicleId ?? null,
+    vehicleId ?? null,
   );
   return rows.map((row) => ({
     id: row.id,
@@ -135,4 +144,65 @@ export async function getSession(db: SQLiteDatabase, id: number): Promise<Sessio
 
 export async function deleteSession(db: SQLiteDatabase, id: number): Promise<void> {
   await db.runAsync('DELETE FROM sessions WHERE id = ?', id);
+}
+
+export type VehicleRecord = { sessionId: number; value: number; startedAt: number };
+
+export type VehicleStats = {
+  sessionCount: number;
+  totalDistanceM: number;
+  totalDurationS: number;
+  /** Total climb in meters; 0 when no session had altitude data. */
+  totalClimbM: number;
+  /** Null when the vehicle has no sessions (or none qualifies). */
+  longestRide: VehicleRecord | null;
+  topSpeed: VehicleRecord | null;
+  /** Best average speed in m/s. Rides under `MIN_RECORD_DISTANCE_M` are ignored. */
+  bestAverageSpeed: VehicleRecord | null;
+};
+
+/** Very short sessions give silly averages (GPS jitter), so they never count as a speed record. */
+export const MIN_RECORD_DISTANCE_M = 500;
+
+/** Totals and personal records for one vehicle, from all of its sessions. */
+export async function getVehicleStats(
+  db: SQLiteDatabase,
+  vehicleId: number,
+): Promise<VehicleStats> {
+  const totals = await db.getFirstAsync<{
+    n: number;
+    distance: number | null;
+    duration: number | null;
+    climb: number | null;
+  }>(
+    `SELECT COUNT(*) AS n, SUM(distance_m) AS distance, SUM(duration_s) AS duration,
+            SUM(elevation_gain_m) AS climb
+       FROM sessions WHERE vehicle_id = ?`,
+    vehicleId,
+  );
+
+  const record = async (valueSql: string, where = ''): Promise<VehicleRecord | null> => {
+    const row = await db.getFirstAsync<{ id: number; value: number; started_at: number }>(
+      `SELECT id, ${valueSql} AS value, started_at FROM sessions
+        WHERE vehicle_id = ? ${where}
+        ORDER BY value DESC, started_at DESC LIMIT 1`,
+      vehicleId,
+    );
+    return row && row.value > 0
+      ? { sessionId: row.id, value: row.value, startedAt: row.started_at }
+      : null;
+  };
+
+  return {
+    sessionCount: totals?.n ?? 0,
+    totalDistanceM: totals?.distance ?? 0,
+    totalDurationS: totals?.duration ?? 0,
+    totalClimbM: totals?.climb ?? 0,
+    longestRide: await record('distance_m'),
+    topSpeed: await record('max_speed_ms'),
+    bestAverageSpeed: await record(
+      'distance_m * 1.0 / duration_s',
+      `AND duration_s > 0 AND distance_m >= ${MIN_RECORD_DISTANCE_M}`,
+    ),
+  };
 }
