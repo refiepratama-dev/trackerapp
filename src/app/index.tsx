@@ -32,8 +32,9 @@ import {
   formatSpeed,
   speedUnitLabel,
 } from '@/tracking/format';
+import { estimateCalories } from '@/tracking/calories';
 import { useRecorder } from '@/tracking/use-recorder';
-import { photoUriFor } from '@/vehicles/photo';
+import { photoUriFor } from '@/profile/photo';
 
 type Summary = {
   vehicleName: string;
@@ -43,13 +44,16 @@ type Summary = {
   durationS: number;
   maxSpeedMs: number;
   route: Coordinate[];
+  elevationGainM: number | null;
+  caloriesKcal: number | null;
 };
 
 export default function RecordScreen() {
   const db = useSQLiteContext();
   const router = useRouter();
   const [permission, requestPermission, refreshPermission] = Location.useForegroundPermissions();
-  const recorder = useRecorder();
+  const { settings } = useSettings();
+  const recorder = useRecorder({ autoPause: settings.autoPause });
   const { setTabBarHidden } = use(TabBarContext);
 
   // Focus mode: hide the tab bar while a session is running, and bring it back when
@@ -136,19 +140,27 @@ export default function RecordScreen() {
   const finish = async () => {
     if (!selected) return;
     const result = recorder.finish();
+    const caloriesKcal = estimateCalories({
+      typeName: selected.typeName,
+      weightKg: settings.weightKg,
+      durationS: result.durationS,
+      distanceM: result.distanceM,
+    });
     try {
-      await createSession(db, { vehicleId: selected.id, ...result });
+      await createSession(db, { vehicleId: selected.id, ...result, caloriesKcal });
     } catch {
       Alert.alert('Could not save', 'The session could not be saved to your phone.');
     }
     setSummary({
       vehicleName: selected.name,
-      photoUri: photoUriFor(selected.photoFile),
+      photoUri: photoUriFor(settings.photoFile),
       startedAt: result.startedAt,
       distanceM: result.distanceM,
       durationS: result.durationS,
       maxSpeedMs: result.maxSpeedMs,
       route: result.route,
+      elevationGainM: result.elevationGainM,
+      caloriesKcal,
     });
   };
 
@@ -254,7 +266,13 @@ function RecordingView({
 
       <SafeAreaView edges={['top']} style={styles.topBar} pointerEvents="none">
         <GlassPanel style={styles.vehicleChip}>
-          <Text style={styles.chipLabel}>{paused ? `${vehicleName} · Paused` : vehicleName}</Text>
+          <Text style={styles.chipLabel}>
+            {paused
+              ? `${vehicleName} · Paused`
+              : recorder.autoPaused
+                ? `${vehicleName} · Auto-paused`
+                : vehicleName}
+          </Text>
         </GlassPanel>
       </SafeAreaView>
 
@@ -313,6 +331,8 @@ function SummaryView({ summary, onDone }: { summary: Summary; onDone: () => void
         distanceM={summary.distanceM}
         durationS={summary.durationS}
         maxSpeedMs={summary.maxSpeedMs}
+        elevationGainM={summary.elevationGainM}
+        caloriesKcal={summary.caloriesKcal}
       />
       <PrimaryButton label="Share card" onPress={() => setShareOpen(true)} />
       <PrimaryButton label="Done" tone="glass" onPress={onDone} />

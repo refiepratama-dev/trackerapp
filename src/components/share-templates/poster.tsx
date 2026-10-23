@@ -21,8 +21,10 @@ export const PosterCard = forwardRef<View, TemplateProps>(function PosterCard(
   const u = width / DESIGN_WIDTH;
   const height = width * CARD_ASPECT;
   const s = useCardStats(data);
+  // Tighter rows when climb or calories add lines.
+  const compact = s.extraCount > 0;
 
-  const routeBox = { width: 320 * u, height: 170 * u };
+  const routeBox = { width: 320 * u, height: (s.extraCount > 0 ? 120 : 170) * u };
   const plotted = usePlottedRoute(data.route, routeBox.width, routeBox.height, 14 * u);
 
   return (
@@ -88,9 +90,21 @@ export const PosterCard = forwardRef<View, TemplateProps>(function PosterCard(
       </View>
 
       <View style={{ marginTop: 'auto', marginBottom: 20 * u }}>
-        <Row u={u} label="TIME" value={s.time} />
-        <Row u={u} label={s.avgLabel.toUpperCase()} value={s.avg} />
-        <Row u={u} label={s.maxLabel.toUpperCase()} value={s.max} last />
+        <Row u={u} compact={compact} label="TIME" value={s.time} />
+        <Row u={u} compact={compact} label={s.avgLabel.toUpperCase()} value={s.avg} />
+        <Row
+          u={u}
+          compact={compact}
+          label={s.maxLabel.toUpperCase()}
+          value={s.max}
+          last={s.extraCount === 0}
+        />
+        {s.elevation ? (
+          <Row u={u} compact={compact} label="CLIMB" value={s.elevation} last={!s.calories} />
+        ) : null}
+        {s.calories ? (
+          <Row u={u} compact={compact} label="CALORIES (EST.)" value={s.calories} last />
+        ) : null}
       </View>
     </View>
   );
@@ -101,24 +115,26 @@ function Row({
   label,
   value,
   last,
+  compact,
 }: {
   u: number;
   label: string;
   value: string;
   last?: boolean;
+  compact?: boolean;
 }) {
   return (
     <View
       style={[
         styles.statRow,
         {
-          paddingVertical: 10 * u,
+          paddingVertical: (compact ? 6 : 10) * u,
           borderTopWidth: 3 * u,
           borderBottomWidth: last ? 3 * u : 0,
         },
       ]}>
       <Text style={[styles.tiny, { fontSize: 13 * u, letterSpacing: 3 * u }]}>{label}</Text>
-      <Text style={[styles.statValue, { fontSize: 30 * u }]}>{value}</Text>
+      <Text style={[styles.statValue, { fontSize: (compact ? 24 : 30) * u }]}>{value}</Text>
     </View>
   );
 }

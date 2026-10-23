@@ -20,7 +20,8 @@ export const ClassicCard = forwardRef<View, TemplateProps>(function ClassicCard(
   const height = width * CARD_ASPECT;
   const s = useCardStats(data);
 
-  const routeBox = { width: 320 * u, height: 250 * u };
+  // Room for a second stats row when climb or calories are present.
+  const routeBox = { width: 320 * u, height: (s.extraCount > 0 ? 200 : 250) * u };
   const plotted = usePlottedRoute(data.route, routeBox.width, routeBox.height, 20 * u);
 
   return (
@@ -107,6 +108,12 @@ export const ClassicCard = forwardRef<View, TemplateProps>(function ClassicCard(
           <Stat u={u} label={s.avgLabel} value={s.avg} />
           <Stat u={u} label={s.maxLabel} value={s.max} />
         </View>
+        {s.extraCount > 0 ? (
+          <View style={[styles.row, { justifyContent: 'flex-start', gap: 36 * u }]}>
+            {s.elevation ? <Stat u={u} label="Climb" value={s.elevation} /> : null}
+            {s.calories ? <Stat u={u} label="Calories (est.)" value={s.calories} /> : null}
+          </View>
+        ) : null}
       </View>
     </View>
   );
@@ -136,6 +143,7 @@ const styles = StyleSheet.create({
   distanceRow: { flexDirection: 'row', alignItems: 'baseline' },
   distance: { color: Colors.dark.text, fontWeight: '700' },
   row: { flexDirection: 'row', justifyContent: 'space-between' },
+
   stat: { gap: 2 },
   statValue: { color: Colors.dark.text, fontWeight: '600' },
 });

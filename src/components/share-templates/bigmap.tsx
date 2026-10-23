@@ -122,6 +122,16 @@ export const BigMapCard = forwardRef<View, TemplateProps>(function BigMapCard(
           <Text style={[styles.sideText, { fontSize: 14 * u }]}>
             {s.max} <Text style={styles.dim}>max</Text>
           </Text>
+          {s.elevation ? (
+            <Text style={[styles.sideText, { fontSize: 14 * u }]}>
+              {s.elevation} <Text style={styles.dim}>climb</Text>
+            </Text>
+          ) : null}
+          {s.calories ? (
+            <Text style={[styles.sideText, { fontSize: 14 * u }]}>
+              {s.calories} <Text style={styles.dim}>kcal</Text>
+            </Text>
+          ) : null}
         </View>
       </View>
     </View>

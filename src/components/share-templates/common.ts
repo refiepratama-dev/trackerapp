@@ -1,11 +1,13 @@
 import { useMemo } from 'react';
 
 import { useSettings } from '@/context/settings-context';
-import { plotRoute, trimRoute } from '@/share/trim-route';
+import { plotRoute, ROUTE_PRIVACY_TRIM_M, trimRoute } from '@/share/trim-route';
 import type { Coordinate } from '@/tracking/geo';
 import {
   distanceUnitLabel,
+  elevationUnitLabel,
   formatDistance,
+  formatElevation,
   formatDuration,
   formatSpeed,
   speedUnitLabel,
@@ -22,6 +24,10 @@ export type ShareCardData = {
   durationS: number;
   maxSpeedMs: number;
   route: Coordinate[];
+  /** Total climb in meters; left out of the card when null or missing. */
+  elevationGainM?: number | null;
+  /** Estimated kilocalories; left out of the card when null or missing. */
+  caloriesKcal?: number | null;
 };
 
 /** Every template is designed on a 360 x 640 grid (9:16, Instagram Story) and scaled to `width`. */
@@ -48,13 +54,27 @@ export function useCardStats(data: ShareCardData) {
     avg: formatSpeed(avgSpeedMs, unit),
     maxLabel: `Max ${speedUnitLabel(unit)}`,
     max: formatSpeed(data.maxSpeedMs, unit),
+    /** Climb with its unit, e.g. "42 m"; null when there is no altitude data. */
+    elevation:
+      data.elevationGainM != null
+        ? `${formatElevation(data.elevationGainM, unit)} ${elevationUnitLabel(unit)}`
+        : null,
+    /** Calories as "~312"; null when no body weight was set. */
+    calories: data.caloriesKcal != null ? `~${data.caloriesKcal}` : null,
+    /** How many of the two optional stats are present (0 to 2). */
+    extraCount: (data.elevationGainM != null ? 1 : 0) + (data.caloriesKcal != null ? 1 : 0),
   };
 }
 
-/** The privacy-trimmed route projected into a box; null when the ride was too short. */
+/**
+ * The route projected into a box. The start and end are cut for privacy unless the user turned
+ * that off in Settings; null when too little route is left to draw.
+ */
 export function usePlottedRoute(route: Coordinate[], width: number, height: number, pad: number) {
+  const { settings } = useSettings();
+  const trimMeters = settings.hideRouteEnds ? ROUTE_PRIVACY_TRIM_M : 0;
   return useMemo(
-    () => plotRoute(trimRoute(route), width, height, pad),
-    [route, width, height, pad],
+    () => plotRoute(trimRoute(route, trimMeters), width, height, pad),
+    [route, trimMeters, width, height, pad],
   );
 }

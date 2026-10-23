@@ -2,10 +2,20 @@ import { Directory, File, Paths } from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
 
 /**
- * Vehicle photos are copied into the app's own storage. The database only keeps the file name,
+ * The profile photo is copied into the app's own storage. Settings only keep the file name,
  * because the full path of the app folder can change when iOS updates or reinstalls the app.
  */
-const photoDir = () => new Directory(Paths.document, 'vehicle-photos');
+const photoDir = () => new Directory(Paths.document, 'profile-photos');
+
+/** Earlier versions kept a photo per vehicle. That folder is no longer used, so it is removed. */
+export function removeLegacyVehiclePhotos(): void {
+  try {
+    const legacy = new Directory(Paths.document, 'vehicle-photos');
+    if (legacy.exists) legacy.delete();
+  } catch {
+    // Leftover files are harmless; never block the app over them.
+  }
+}
 
 /** Full `file://` address for a stored photo name, or null when there is no (readable) photo. */
 export function photoUriFor(fileName: string | null | undefined): string | null {
@@ -29,7 +39,7 @@ export type PickResult =
   { status: 'picked'; fileName: string } | { status: 'cancelled' } | { status: 'denied' };
 
 /** Opens the photo library, lets the user crop to a square, and stores the result. */
-export async function pickVehiclePhoto(): Promise<PickResult> {
+export async function pickProfilePhoto(): Promise<PickResult> {
   const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
   if (!permission.granted) return { status: 'denied' };
 

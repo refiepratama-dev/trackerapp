@@ -166,6 +166,12 @@ export const NeonCard = forwardRef<View, TemplateProps>(function NeonCard({ data
             <Stat u={u} label="AVG" value={s.avg} />
             <Stat u={u} label="MAX" value={s.max} />
           </View>
+          {s.extraCount > 0 ? (
+            <View style={styles.extraRow}>
+              {s.elevation ? <Stat u={u} label="CLIMB" value={s.elevation} /> : null}
+              {s.calories ? <Stat u={u} label="KCAL (EST.)" value={s.calories} /> : null}
+            </View>
+          ) : null}
         </View>
       </View>
     </View>
@@ -211,5 +217,6 @@ const styles = StyleSheet.create({
     textShadowRadius: 10,
   },
   row: { flexDirection: 'row', justifyContent: 'space-between' },
+  extraRow: { flexDirection: 'row', gap: 28 },
   statValue: { color: CYAN, fontFamily: Fonts.mono, fontWeight: '700' },
 });

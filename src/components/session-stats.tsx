@@ -5,7 +5,9 @@ import { Colors, Spacing } from '@/constants/theme';
 import { useSettings } from '@/context/settings-context';
 import {
   distanceUnitLabel,
+  elevationUnitLabel,
   formatDistance,
+  formatElevation,
   formatDuration,
   formatSpeed,
   speedUnitLabel,
@@ -26,10 +28,20 @@ type SessionStatsPanelProps = {
   distanceM: number;
   durationS: number;
   maxSpeedMs: number;
+  /** Total climb in meters; the Climb stat is left out when null. */
+  elevationGainM?: number | null;
+  /** Estimated kilocalories; the Calories stat is left out when null. */
+  caloriesKcal?: number | null;
 };
 
 /** Big distance plus time, average and max speed. Used by the session summary and History detail. */
-export function SessionStatsPanel({ distanceM, durationS, maxSpeedMs }: SessionStatsPanelProps) {
+export function SessionStatsPanel({
+  distanceM,
+  durationS,
+  maxSpeedMs,
+  elevationGainM,
+  caloriesKcal,
+}: SessionStatsPanelProps) {
   const { settings } = useSettings();
   const unit = settings.unit;
   const avgSpeedMs = durationS > 0 ? distanceM / durationS : 0;
@@ -45,6 +57,19 @@ export function SessionStatsPanel({ distanceM, durationS, maxSpeedMs }: SessionS
         <Stat label={`Avg ${speedUnitLabel(unit)}`} value={formatSpeed(avgSpeedMs, unit)} />
         <Stat label={`Max ${speedUnitLabel(unit)}`} value={formatSpeed(maxSpeedMs, unit)} />
       </View>
+      {elevationGainM != null || caloriesKcal != null ? (
+        <View style={styles.statsRow}>
+          {elevationGainM != null ? (
+            <Stat
+              label={`Climb ${elevationUnitLabel(unit)}`}
+              value={formatElevation(elevationGainM, unit)}
+            />
+          ) : null}
+          {caloriesKcal != null ? (
+            <Stat label="Calories (est.)" value={`~${caloriesKcal}`} />
+          ) : null}
+        </View>
+      ) : null}
     </GlassPanel>
   );
 }

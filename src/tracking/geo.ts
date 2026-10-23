@@ -1,3 +1,5 @@
+import { ElevationGain } from '@/tracking/elevation';
+
 export type Coordinate = { latitude: number; longitude: number };
 
 /** One GPS fix, reduced to what the tracker needs. */
@@ -8,12 +10,18 @@ export type Fix = Coordinate & {
   accuracy: number | null;
   /** speed in m/s from the OS, null or negative when unknown */
   speed: number | null;
+  /** altitude in meters, null when unknown */
+  altitude?: number | null;
+  /** vertical accuracy in meters, null or negative when unknown */
+  altitudeAccuracy?: number | null;
 };
 
 export type TrackSnapshot = {
   distanceM: number;
   maxSpeedMs: number;
   route: Coordinate[];
+  /** Total climb in meters; null when the phone gave no usable altitude. */
+  elevationGainM: number | null;
 };
 
 /** Fixes less accurate than this (meters) are ignored. */
@@ -44,6 +52,7 @@ export class Tracker {
   private distanceM = 0;
   private maxSpeedMs = 0;
   private route: Coordinate[] = [];
+  private elevation = new ElevationGain();
 
   /** Returns true when the fix was accepted and the snapshot changed. */
   addFix(fix: Fix): boolean {
@@ -52,6 +61,7 @@ export class Tracker {
     if (!this.prev) {
       this.prev = fix;
       this.route.push({ latitude: fix.latitude, longitude: fix.longitude });
+      this.elevation.add(fix.altitude ?? null, fix.altitudeAccuracy ?? null);
       return true;
     }
 
@@ -68,6 +78,7 @@ export class Tracker {
     this.distanceM += step;
     this.maxSpeedMs = Math.max(this.maxSpeedMs, speed);
     this.route.push({ latitude: fix.latitude, longitude: fix.longitude });
+    this.elevation.add(fix.altitude ?? null, fix.altitudeAccuracy ?? null);
     this.prev = fix;
     return true;
   }
@@ -78,6 +89,11 @@ export class Tracker {
   }
 
   snapshot(): TrackSnapshot {
-    return { distanceM: this.distanceM, maxSpeedMs: this.maxSpeedMs, route: [...this.route] };
+    return {
+      distanceM: this.distanceM,
+      maxSpeedMs: this.maxSpeedMs,
+      route: [...this.route],
+      elevationGainM: this.elevation.total(),
+    };
   }
 }
